@@ -99,6 +99,9 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const isEditing = ref<boolean>(false);
     const isEditMode = ref<boolean>(true); // 用來區分新增或編輯資料
     //const privilegeManagementForm = ref<UserViewModel | null>(null); // 表單的欄位資料
+    const toUTC = (date: Date) => {
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    };
     const defaultData: UserViewModel = {
         UserId: 0,
         Name: '',
@@ -108,9 +111,17 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
         GroupId: 1,
         Status: true,
         System: '',
-        LastPasswordChangeDate: new Date(),
+        LastPasswordChangeDate: toUTC(new Date()),
         ErrCount: 0,
-        ErrDate: new Date(1990, 0, 1)
+        ErrDate: toUTC(new Date(1990, 0, 1)),
+        "Group": {
+            "GroupId": 0,
+            "GroupName": ""
+        },
+        "RolePermission": {
+            "RolePermissionId": 0,
+            "PermissionType": 0
+        }
     };
     const privilegeManagementForm = ref<UserViewModel>(defaultData); // 表單的欄位資料
     //const status1Items = ref<Array<string>>(['A', 'B', 'C', 'D']);

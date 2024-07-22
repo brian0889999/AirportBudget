@@ -1,10 +1,12 @@
-﻿namespace AirportBudget.Server.ViewModels
+﻿using AirportBudget.Server.Enums;
+
+namespace AirportBudget.Server.ViewModels
 {
     public class BudgetAmountViewModel
     {
         public int BudgetAmountId { get; set; }
         public string Description { get; set; } = string.Empty;
-        public int Type { get; set; }
+        public AmountType Type { get; set; }
         public int RequestAmount { get; set; }
         public int PaymentAmount { get; set; }
         public DateTime? RequestDate { get; set; }
@@ -18,7 +20,7 @@
         public int CreatedYear { get; set; }
         public int AmountYear { get; set; }
         public int BudgetId { get; set; }
-        public int AmountSerialNumber { get; set; }
+        //public int AmountSerialNumber { get; set; }
         public bool IsValid { get; set; }
 
         public BudgetViewModel? Budget { get; set; }

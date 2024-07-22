@@ -1,15 +1,15 @@
-import type { MoneyItem } from '@/types/apiInterface';
+import type { Budget } from '@/types/apiInterface';
 import axios from 'axios';
 
 // 透過condition(篩選條件是item的Text欄位)找出那一欄位的field做總和
-export const sumByCondition = (items: MoneyItem[], condition: string, field: keyof MoneyItem) => {
+export const sumByCondition = (items: Budget[], condition: number, field: keyof Budget) => {
     return items
-        .filter(item => item.Text === condition)
+        .filter(item => item.Type === condition)
         .reduce((sum, item) => sum + (item[field] as number || 0), 0);
 };
 
 // 用於分組
-export const groupBy = (array: MoneyItem[], keys: (keyof MoneyItem)[]) => {
+export const groupBy = (array: Budget[], keys: (keyof Budget)[]) => {
     return array.reduce((result, currentValue) => {
         const key = keys.map(k => currentValue[k]).join('-');
         if (!result[key]) {
@@ -17,7 +17,7 @@ export const groupBy = (array: MoneyItem[], keys: (keyof MoneyItem)[]) => {
         }
         result[key].push(currentValue);
         return result;
-    }, {} as Record<string, MoneyItem[]>);
+    }, {} as Record<string, Budget[]>);
 };
 
 // 民國年轉換工具函數
@@ -75,3 +75,5 @@ export const formatNumber = (number: any) => {
 //    }
 //    return number.toLocaleString();
 //};
+
+export const formatBool = (boolean: boolean): string => boolean ? "V" : "";

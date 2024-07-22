@@ -1,4 +1,4 @@
-<!--<template>
+<template>
     <v-container class="no-margin" fluid>
         <v-row justify="start">
             <v-col cols="12" sm="8" md="6">
@@ -12,7 +12,7 @@
                     </v-col>
                     <v-col cols="3">
                         <v-text-field label="輸入摘要"
-                                      v-model="noteInput"
+                                      v-model="descriptionInput"
                                       style="width: 100%;" />
                     </v-col>
                     <v-col cols="3">
@@ -34,17 +34,17 @@
                       items-per-page-text="每頁筆數"
                       :loading="loading"
                       style="width: 100%;">
-            <template v-slot:item.Purchasedate="{ item }">
-                {{ formatDate(item.Purchasedate) }}
+            <template v-slot:item.RequestDate="{ item }">
+                {{ formatDate(item.RequestDate) }}
             </template>
-            <template v-slot:item.PayDate="{ item }">
-                {{ formatDate(item.PayDate) }}
+            <template v-slot:item.PaymentDate="{ item }">
+                {{ formatDate(item.PaymentDate) }}
             </template>
-            <template v-slot:item.PurchaseMoney="{ item }">
-                {{ formatNumber(item.PurchaseMoney) }}
+            <template v-slot:item.RequestAmount="{ item }">
+                {{ formatNumber(item.RequestAmount) }}
             </template>
-            <template v-slot:item.PayMoney="{ item }">
-                {{ formatNumber(item.PayMoney) }}
+            <template v-slot:item.PaymentAmount="{ item }">
+                {{ formatNumber(item.PaymentAmount) }}
             </template>
             <template v-slot:item.actions="{ item }">
                <v-btn @click="restoreData(item)"
@@ -61,7 +61,7 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { ref, computed, onMounted } from 'vue';
-import type { SoftDeleteViewModel } from '@/types/apiInterface';
+import type { BudgetAmountViewModel, SelectedDetail, SoftDeleteViewModel } from '@/types/apiInterface';
 //import { AuthMapping, ReverseAuthMapping, StatusMapping, ReverseStatusMapping } from '@/utils/mappings'; // 對應狀態碼到中文
 import { get, put, type ApiResponse } from '@/services/api';
 import type { VDataTable } from 'vuetify/components';
@@ -74,48 +74,49 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     // 生成從111到當年度的年份陣列
     const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i)); 
     const searchYear = ref<number>(113);
-    const noteInput = ref<string>('');
-    const items = ref<SoftDeleteViewModel[]>([]);
+    const descriptionInput = ref<string>('');
+    const items = ref<BudgetAmountViewModel[]>([]);
     const headers: ReadonlyHeaders = [
-        { title: '請購日期', key: 'Purchasedate' },
-        { title: '類別', key: 'Text' },
-        { title: '摘要', key: 'Note' },
-        { title: '請購金額', key: 'PurchaseMoney' },
-        { title: '支付日期', key: 'PayDate' },
-        { title: '實付金額', key: 'PayMoney' },
-        { title: '請購人', key: 'People' },
-        { title: '支付人', key: 'People1' },
+        { title: '請購日期', key: 'RequestDate' },
+        { title: '類別', key: 'Type' },
+        { title: '摘要', key: 'Description' },
+        { title: '請購金額', key: 'RequestAmount' },
+        { title: '支付日期', key: 'PaymentDate' },
+        { title: '實付金額', key: 'PaymentAmount' },
+        { title: '請購人', key: 'RequestPerson' },
+        { title: '支付人', key: 'PaymentPerson' },
         { title: '備註', key: 'Remarks' },
-        { title: '預算名稱', key: 'Name' },
-        { title: '組室別', key: 'Group1' },
+        { title: '預算名稱', key: 'Budget.BudgetName' },
+        { title: '組室別', key: 'Budget.Group.GroupName' },
         { title: '', key: 'actions', sortable: false },
     ];
 const searchDeletedRecords = async () => {
-    const url = 'api/Money3/ByDeletedRecords';
-    const data: any = { Year: searchYear.value, Note: ''};
-    if(noteInput) data.Note = noteInput.value;
+    const url = 'api/BudgetAmount/ByDeletedRecords';
+    const data: any = { CreatedYear: searchYear.value, Description: ''};
+    if (descriptionInput) data.Description = descriptionInput.value;
     try {
-        console.log(123);
-        console.log(data);
-        const response: ApiResponse<SoftDeleteViewModel[]> = await get<SoftDeleteViewModel[]>(url, data);
+        //console.log(123);
+        //console.log(data);
+        const response: ApiResponse<BudgetAmountViewModel[]> = await get<BudgetAmountViewModel[]>(url, data);
         //console.log(response.Message);
         if (response.StatusCode == 200) {
             items.value = response?.Data ?? []; 
-            console.log(items.value);
+            //console.log(items.value);
         }
     }
     catch (error) {
         console.error(error);
         }
     };
-    const restoreData = async (item: SoftDeleteViewModel) => {
+    const restoreData = async (data: BudgetAmountViewModel) => {
         const isConfirmed = confirm('你確定要還原嗎？');
-        const url = 'api/Money3/ByRestoreData'
+        const url = 'api/BudgetAmount/ByRestoreData'
         if (isConfirmed) {
             try {
-                //console.log(item);
-                const response: ApiResponse<any> = await put<SoftDeleteViewModel>(url, item);
+                //console.log('data', data);
+                const response: ApiResponse<any> = await put<BudgetAmountViewModel>(url, data);
                 if (response.StatusCode == 200) { // 如果成功再叫一次資料
+                    //console.log(response.Message);
                     await searchDeletedRecords();
                 }
             }
@@ -128,4 +129,4 @@ const searchDeletedRecords = async () => {
 
 <style scoped>
  
-</style>-->
+</style>

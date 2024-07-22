@@ -38,10 +38,13 @@ public class UserController : ControllerBase
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet]
-    public ActionResult<IEnumerable<User>> FetchUsers()
+    public ActionResult<IEnumerable<UserViewModel>> FetchUsers()
     {
-        var usersData = _userRepository.GetAll().ToList();
-        List<User> users = _mapper.Map<List<User>>(usersData);
+        var usersData = _userRepository.GetAll()
+            .Include(u => u.Group)
+            .Include(u => u.RolePermission)
+            .ToList();
+        List<UserViewModel> users = _mapper.Map<List<UserViewModel>>(usersData);
 
         foreach (var user in users)
         {
@@ -69,21 +72,12 @@ public class UserController : ControllerBase
             }
             else
             {
-                // 如果 No 欄位的值是 0，則從資料庫中查找最大值並加 1
-                //if (request.No == 0)
-                //{
-                //    Expression<Func<User, bool>> condition = u => true;
-                //    var maxNo = await _userRepository.GetByCondition(condition)
-                //                                .OrderByDescending(u => u.UserId)
-                //                                .Select(u => u.UserId)
-                //                                .FirstOrDefaultAsync();
-                //    request.No = maxNo + 1;
-                //}
                 if (!string.IsNullOrEmpty(request.Password))
                 {
                     request.Password = _dESEncryptionUtility.EncryptDES(request.Password.Trim());
                 }
-
+                request.Group = null;
+                request.RolePermission = null;
                 User newUser = _mapper.Map<User>(request);
 
                 _userRepository.Add(newUser);
@@ -101,7 +95,7 @@ public class UserController : ControllerBase
     /// </summary>
     /// <returns>更新結果</returns>
     [HttpPut]
-    public IActionResult UpdateUser([FromBody] UserViewModel request)
+    public IActionResult UpdateUser([FromBody] User request)
     {
         try
         {
@@ -115,7 +109,10 @@ public class UserController : ControllerBase
                 Expression<Func<User, bool>> condition = u => true;
                 condition = condition.And(u => u.UserId == request.UserId);
 
-                var existingUser = _userRepository.GetByCondition(condition).Include(u => u.RolePermission).FirstOrDefault();
+                var existingUser = _userRepository.GetByCondition(condition)
+                    .Include(u => u.Group)
+                    .Include(u => u.RolePermission)
+                    .FirstOrDefault();
 
                 if (existingUser == null)
                 {
@@ -127,8 +124,9 @@ public class UserController : ControllerBase
                     request.Password = _dESEncryptionUtility.EncryptDES(request.Password.Trim());
                 }
 
-                _mapper.Map(request, existingUser);
-                _userRepository.Update(existingUser);
+                request.Group = null;
+                request.RolePermission = null;
+                _userRepository.Update(existingUser, request);
 
                 return Ok(existingUser);
             }
@@ -160,9 +158,9 @@ public class UserController : ControllerBase
             //{
             //    user.Password = _dESEncryptionUtility.DecryptDES(user.Password);
             //}
-            User formatUserInfo = _mapper.Map<User>(userInfo);
+            //UserViewModel formatUserInfo = _mapper.Map<UserViewModel>(userInfo);
 
-            return Ok(formatUserInfo);
+            return Ok(userInfo);
         }
         catch (Exception ex)
         {

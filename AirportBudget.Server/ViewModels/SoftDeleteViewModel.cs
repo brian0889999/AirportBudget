@@ -1,4 +1,4 @@
-﻿using MyGisMIS.Server.Enums;
+﻿using AirportBudget.Server.Enums;
 
 namespace AirportBudget.Server.ViewModels
 {

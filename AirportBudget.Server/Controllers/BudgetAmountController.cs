@@ -21,6 +21,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
 using LinqKit;
 using AirportBudget.Server.ViewModels;
+using AirportBudget.Server.Enums;
 
 
 
@@ -35,41 +36,6 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     private readonly IGenericRepository<Budget> _BudgetRepository = BudgetRepository;
     private readonly IMapper _mapper = mapper;
 
-
-    /// <summary>
-    /// Groups的預算資料查詢(包含所有欄位)
-    /// </summary>
-    /// <returns>查詢結果</returns>
-    //[HttpGet("ByYear")]
-    //public IActionResult GetData(int Year, string Group) // 前端傳Year值,後端回傳符合Year值的工務組資料
-    //{
-    //    try
-    //    {
-    //        var results = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.Group1 == Group
-    //                && BudgetAmount.Money != null && BudgetAmount.Money.Group == Group
-    //                && BudgetAmount.Year == Year && BudgetAmount.Money.Year == Year
-    //                && (BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C")))
-    //                .Include(BudgetAmount => BudgetAmount.Money)
-    //                .AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
-    //                .Select(BudgetAmount =>
-    //                {
-    //                    // 移除需要的欄位中的多餘空格
-    //                    BudgetAmount.Group1 = BudgetAmount.Group1?.Trim() ?? "";
-    //                    BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
-    //                    BudgetAmount.All = BudgetAmount.All?.Trim() ?? "";
-    //                    BudgetAmount.True = BudgetAmount.True?.Trim() ?? "";
-    //                    return BudgetAmount;
-    //                })
-    //                .ToList();
-
-    //        return Ok(results);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
-    //    }
-    //}
-
     /// <summary>
     /// Groups的預算資料查詢
     /// </summary>
@@ -82,11 +48,13 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         condition = condition.And(BudgetAmount => BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
         condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year);
         condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
+        condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
         try
         {
             var results = _BudgetAmountRepository.GetByCondition(condition)
             .Include(BudgetAmount => BudgetAmount.Budget)
             .ThenInclude(Budget => Budget!.Group)
+             .OrderBy(BudgetAmount => BudgetAmount.Budget!.BudgetName)
             .ToList();
 
             List<BudgetAmountViewModel> budgetAmountViewModels = _mapper.Map<List<BudgetAmountViewModel>>(results);
@@ -104,14 +72,16 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("SelectedDetail")]
-    public IActionResult GetDetailData(string BudgetName, int Year, int GroupId, string? Description = null, int? RequestAmount = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
+    public IActionResult GetDetailData(int BudgetId, string? BudgetName, int? Year, int? GroupId, string? Description = null, int? RequestAmount = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
     {
         try
         {
             Expression<Func<BudgetAmount, bool>> condition = item => true;
-            condition = condition.And(BudgetAmount => BudgetAmount.Budget!.BudgetName == BudgetName);
-            condition = condition.And(BudgetAmount => BudgetAmount.Budget!.GroupId == GroupId && BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
-            condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
+            //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.BudgetName == BudgetName);
+            //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.GroupId == GroupId && BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
+            //condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
+            condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.Status == "O");
+            condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
 
 
             if (!string.IsNullOrEmpty(Description))
@@ -130,7 +100,6 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
            .Select(BudgetAmount =>
            {
                // 移除需要的欄位中的多餘空格
-               //BudgetAmount.Group1 = BudgetAmount.Group1?.Trim() ?? "";
                BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
                return BudgetAmount;
            })
@@ -143,78 +112,93 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         }
     }
 
-    //[HttpGet("ExportToExcel")]
-    //public async Task<IActionResult> ExportToExcel(string budget)
-    //{
-    //    try
-    //    {
-    //        var results = await _context.Money
-    //            .Include(m => m.BudgetAmounts)
-    //            .Where(m => m.Budget == budget && m.Group == "工務組")
-    //            .ToListAsync();
 
-    //        using (var workbook = new XSSFWorkbook())
-    //        {
-    //            var sheet = workbook.CreateSheet("Budget Data");
-    //            var headerRow = sheet.CreateRow(0);
-    //            headerRow.CreateCell(0).SetCellValue("Budget");
-    //            headerRow.CreateCell(1).SetCellValue("Subject6");
-    //            headerRow.CreateCell(2).SetCellValue("Subject7");
-    //            headerRow.CreateCell(3).SetCellValue("Subject8");
-    //            headerRow.CreateCell(4).SetCellValue("PurchaseMoney");
+    /// <summary>
+    /// 新增資料
+    /// </summary>
+    /// <returns>新增結果</returns>
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] BudgetAmount request)
+    {
+        try
+        {
+            //request.Money = null;
+            request.Budget = null;
+            // 檢查 request 的 AmountSerialNumber 是否為 0 且 Type 是否為 "一般"
+            //if (request.AmountSerialNumber == 0 && request.Type == AmountType.Ordinary)
+            //{
+            //    // 取得資料庫中 ID1 欄位的最大值並遞增
+            //    int maxAmountSerialNumber = await _BudgetAmountRepository.GetAll().MaxAsync(BudgetAmount => (int?)BudgetAmount.AmountSerialNumber) ?? 0;
+            //    request.AmountSerialNumber = maxAmountSerialNumber + 1;
+            //}
 
-    //            for (int i = 0; i < results.Count; i++)
-    //            {
-    //                var row = sheet.CreateRow(i + 1);
-    //                row.CreateCell(0).SetCellValue(results[i].Budget);
-    //                row.CreateCell(1).SetCellValue(results[i].Subject6);
-    //                row.CreateCell(2).SetCellValue(results[i].Subject7);
-    //                row.CreateCell(3).SetCellValue(results[i].Subject8);
-    //                row.CreateCell(4).SetCellValue(results[i].BudgetAmounts.Sum(m => m.PurchaseMoney));
-    //            }
+            // 取得當年民國年分
+            //var currentYear = DateTime.Now.Year - 1911;
+            //request.Year = currentYear;
+            // 使用 AutoMapper 將 ViewModel 映射到 Model
+            BudgetAmount BudgetAmount = _mapper.Map<BudgetAmount>(request);
+            // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
+            BudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            _BudgetAmountRepository.Add(BudgetAmount);
 
-    //            using (var stream = new MemoryStream())
-    //            {
-    //                workbook.Write(stream);
-    //                var content = stream.ToArray();
-    //                return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{budget}.xlsx");
-    //            }
-    //        }
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
-    //    }
-    //}
+            return Ok("Record added successfully");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
 
-    ///// <summary>
-    ///// 新增資料
-    ///// </summary>
-    ///// <returns>新增結果</returns>
+    [HttpPost("ByAllocateForm")]
+    public IActionResult PostByAllocateForm([FromBody] List<AllocateFormViewModel> requests)
+    {
+        try
+        {
+            var entities = _mapper.Map<List<BudgetAmount>>(requests);
+
+            // 使用服務類別的方法新增多筆資料
+            _BudgetAmountRepository.AddRange(entities);
+
+
+            // 保存更改後，檢索剛剛新增的兩筆資料
+            var firstEntity = entities[0];
+            var secondEntity = entities[1];
+
+            // 更新 LinkedBudgetAmountId
+            firstEntity.LinkedBudgetAmountId = secondEntity.BudgetAmountId;
+            secondEntity.LinkedBudgetAmountId = firstEntity.BudgetAmountId;
+
+            // update
+            _BudgetAmountRepository.Update(firstEntity);
+            _BudgetAmountRepository.Update(secondEntity);
+
+            return Ok("Record added successfully");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
     //[HttpPost]
-    //public async Task<IActionResult> Post([FromBody] SoftDeleteViewModel request)
+    //public async Task<IActionResult> Post([FromBody] BudgetAmount request)
     //{
     //    try
     //    {
-    //        //request.Money = null;
-    //        // 檢查 request 的 ID1 是否為 0 且 Text 是否為 "一般"
-    //        if (request.ID1 == 0 && request.Text == "一般")
-    //        {
-    //            // 取得資料庫中 ID1 欄位的最大值並遞增
-    //            int maxID1 = await _BudgetAmountRepository.GetAll().MaxAsync(m => (int?)m.ID1) ?? 0;
-    //            request.ID1 = maxID1 + 1;
-    //        }
-
     //        // 取得當年民國年分
     //        //var currentYear = DateTime.Now.Year - 1911;
     //        //request.Year = currentYear;
     //        // 使用 AutoMapper 將 ViewModel 映射到 Model
-    //        BudgetAmount BudgetAmount = _mapper.Map<BudgetAmount>(request);
-    //        // 檢查 People 和 People1 欄位，若為 null 則存空值
-    //        BudgetAmount.People = request.People == "無" ? string.Empty : request.People;
-    //        BudgetAmount.People1 = request.People1 == "無" ? string.Empty : request.People1;
+    //        BudgetAmount BudgetAmount1 = _mapper.Map<BudgetAmount>(request);
+    //        BudgetAmount BudgetAmount2 = _mapper.Map<BudgetAmount>(request);
+    //        // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
+    //        BudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+    //        BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
     //        _BudgetAmountRepository.Add(BudgetAmount);
+    //        BudgetAmount1.AmountSerialNumber = BudgetAmount2.AmountSerialNumber;
 
+    //        //update
     //        return Ok("Record added successfully");
     //    }
     //    catch (Exception ex)
@@ -223,140 +207,144 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     //    }
     //}
 
-    ///// <summary>
-    ///// 更新細項
-    ///// </summary>
-    ///// <returns>更新結果</returns>
-    //[HttpPut]
-    //public IActionResult DoUpdate([FromBody] SoftDeleteViewModel request)
-    //{
-    //    try
-    //    {
-    //        //request.Money = null;
-    //        var BudgetAmount = _BudgetAmountRepository.GetByCondition(m => m.ID1 == request.ID1).AsNoTracking().FirstOrDefault(); // 這邊不能用find(ID1不是PK)
-    //        if (BudgetAmount == null)
-    //        {
-    //            return NotFound("Record not found");
-    //        }
-    //        // 將 ViewModel 映射到實體模型
-    //        BudgetAmount updatedBudgetAmount = _mapper.Map<SoftDeleteViewModel, BudgetAmount>(request, BudgetAmount);
-    //        // 檢查 People 和 People1 欄位，若為 null 則存空值
-    //        BudgetAmount.People = request.People == "無" ? string.Empty : request.People;
-    //        BudgetAmount.People1 = request.People1 == "無" ? string.Empty : request.People1;
-    //        _BudgetAmountRepository.Update(updatedBudgetAmount);
-    //        return Ok("Record updated successfully");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
-    //    }
-    //}
+    /// <summary>
+    /// 更新細項
+    /// </summary>
+    /// <returns>更新結果</returns>
+    [HttpPut]
+    public IActionResult DoUpdate([FromBody] BudgetAmount request)
+    {
+        try
+        {
+            request.Budget = null;
+            Expression<Func<BudgetAmount, bool>> condition = item => true;
 
-    ///// <summary>
-    ///// 軟刪除
-    ///// </summary>
-    ///// <returns>刪除結果</returns>
-    //[HttpPut("SoftDelete")]
-    //public IActionResult DoSoftDelete([FromBody] SoftDeleteViewModel request)
-    //{
-    //    try
-    //    {
-    //        var BudgetAmount = _BudgetAmountRepository.GetByCondition(m => m.ID1 == request.ID1).FirstOrDefault();
-    //        if (BudgetAmount == null)
-    //        {
-    //            return NotFound("not exist");
-    //        }
-    //        // 更新Status欄位
-    //        BudgetAmount.Status = "X";
-    //        _BudgetAmountRepository.Update(BudgetAmount);
-    //        return Ok("ok");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
-    //    }
-    //}
+            if (request.Type == AmountType.Ordinary)
+            {
+                condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
+            }
+            //else
+            //{
+            //    condition = condition.And(BudgetAmount => BudgetAmount.AmountSerialNumber == request.AmountSerialNumber);
+            //}
 
-    ///// <summary>
-    ///// 軟刪除
-    ///// </summary>
-    ///// <returns>刪除結果</returns>
-    //[HttpGet("ByDeletedRecords")]
-    //public IActionResult SearchDeletedRecords(int Year, string? Note)
-    //{
-    //    try
-    //    {
-    //        var deletedRecords = _BudgetAmountRepository.GetByCondition(m3 => m3.Year == Year && m3.Status == "X").ToList();
+            var ExistBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
+            if (ExistBudgetAmount == null)
+            {
+                return NotFound("Record not found");
+            }
+            // 將 ViewModel 映射到實體模型
+            BudgetAmount updatedBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, ExistBudgetAmount);
+            // 檢查 People 和 People1 欄位，若為 null 則存空值
+            ExistBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            ExistBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            _BudgetAmountRepository.Update(updatedBudgetAmount);
+            return Ok("Record updated successfully");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
 
-    //        if (!string.IsNullOrEmpty(Note))
-    //        {
-    //            deletedRecords = deletedRecords.Where(m3 => m3.Note != null && m3.Note.Contains(Note)).ToList();
-    //        }
+    /// <summary>
+    /// 軟刪除
+    /// </summary>
+    /// <returns>刪除結果</returns>
+    [HttpPut("SoftDelete")]
+    public IActionResult DoSoftDelete([FromBody] BudgetAmount request)
+    {
+        try
+        {
+            //var BudgetAmount = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.ID1 == request.ID1).FirstOrDefault();
+            var BudgetAmount = _BudgetAmountRepository.GetById(request.BudgetAmountId);
+            if (BudgetAmount == null)
+            {
+                return NotFound("not exist");
+            }
+            // 更新Status欄位
+            BudgetAmount.IsValid = false;
+            _BudgetAmountRepository.Update(BudgetAmount);
+            return Ok("ok");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// 軟刪除查詢
+    /// </summary>
+    /// <returns>查詢結果</returns>
+    [HttpGet("ByDeletedRecords")]
+    public IActionResult SearchDeletedRecords(int CreatedYear, string? Description)
+    {
+        try
+        {
+            var deletedRecords = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.CreatedYear == CreatedYear && BudgetAmount.IsValid == false)
+                .Include(BA => BA.Budget)
+                .ThenInclude(B => B!.Group)
+                .ToList();
+
+            if (!string.IsNullOrEmpty(Description))
+            {
+                deletedRecords = deletedRecords.Where(BudgetAmount => BudgetAmount.Description != null && BudgetAmount.Description.Contains(Description)).ToList();
+            }
 
 
-    //        var cleanedRecords = _mapper.Map<List<DeletedRecordsViewModel>>(deletedRecords);
+            // 將 Status 欄位的多餘空格移除
+            var cleanedRecords = deletedRecords
+                .Select(record =>
+                {
+                    record.Status = record.Status.Trim();
+                    return record;
+                })
+                .ToList();
+            //var cleanedRecords = _mapper.Map<List<DeletedRecordsViewModel>>(deletedRecords);
 
-    //        //var cleanedRecords = deletedRecords.Select(record => new
-    //        //{
-    //        //    record.ID,
-    //        //    Purchasedate = record.Purchasedate,
-    //        //    Text = record.Text?.Trim(),
-    //        //    Note = record.Note?.Trim(),
-    //        //    PurchaseMoney = record.PurchaseMoney,
-    //        //    PayDate = record.PayDate,
-    //        //    PayMoney = record.PayMoney,
-    //        //    People = record.People?.Trim(),
-    //        //    Name = record.Name?.Trim(),
-    //        //    Remarks = record.Remarks?.Trim(),
-    //        //    People1 = record.People1?.Trim(),
-    //        //    ID1 = record.ID1,
-    //        //    Status = record.Status?.Trim(),
-    //        //    Group1 = record.Group1?.Trim(),
-    //        //    All = record.All?.Trim(),
-    //        //    True = record.True?.Trim(),
-    //        //    Year = record.Year,
-    //        //    Year1 = record.Year1?.Trim()
-    //        //}).ToList();
-    //        return Ok(cleanedRecords);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return BadRequest(ex.Message);
-    //    }
-    //}
+            return Ok(cleanedRecords);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
-    ///// <summary>
-    ///// 軟刪除
-    ///// </summary>
-    ///// <returns>刪除結果</returns>
-    //[HttpPut("ByRestoreData")]
-    //public IActionResult RestoreData([FromBody] SoftDeleteViewModel request)
-    //{
-    //    try
-    //    {
-    //        if (request == null || request.ID1 <= 0)
-    //        {
-    //            return BadRequest("Invalid request.");
-    //        }
+    /// <summary>
+    /// 還原軟刪除
+    /// </summary>
+    /// <returns>執行結果</returns>
+    [HttpPut("ByRestoreData")]
+    public IActionResult RestoreData([FromBody] BudgetAmount request)
+    {
+        try
+        {
+            if (request == null || request.BudgetAmountId <= 0)
+            {
+                return BadRequest("Invalid request.");
+            }
 
-    //        //var entity =  _context.BudgetAmount.Find(request.ID1); // 因為find方法是透過主鍵去搜尋,ID1不是主鍵,找不到資料
-    //        var entity = _BudgetAmountRepository.GetByCondition(e => e.ID1 == request.ID1).FirstOrDefault();
+            //var entity =  _context.BudgetAmount.Find(request.ID1); // 因為find方法是透過主鍵去搜尋,ID1不是主鍵,找不到資料
+            var entity = _BudgetAmountRepository.GetById(request.BudgetAmountId);
+            //var entity = _BudgetAmountRepository.GetByCondition(e => e.BudgetAmountId == request.BudgetAmountId).FirstOrDefault();
 
-    //        if (entity == null)
-    //        {
-    //            return NotFound("Record not found.");
-    //        }
+            if (entity == null)
+            {
+                return NotFound("Record not found.");
+            }
 
-    //        entity.Status = "O";
-    //        _BudgetAmountRepository.Update(entity);
+            //entity.Status = "O";
+            entity.IsValid = true;
+            _BudgetAmountRepository.Update(entity);
 
-    //        return Ok("Status updated to 'O'.");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return BadRequest(ex.Message);
-    //    }
-    //}
+            return Ok("IsValid updated to 'O'.");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
 
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using AirportBudget.Server.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 
@@ -12,7 +13,7 @@ namespace AirportBudget.Server.Models
         [StringLength(255)]
         public string Description { get; set; } = string.Empty;
 
-        public int Type { get; set; }
+        public AmountType Type { get; set; }
 
         public int RequestAmount { get; set; }
 
@@ -47,8 +48,9 @@ namespace AirportBudget.Server.Models
 
         
 
-        public int AmountSerialNumber { get; set; }
+        //public int AmountSerialNumber { get; set; }
         public bool IsValid { get; set; }
+        public int? LinkedBudgetAmountId { get; set; }
 
         public  Budget? Budget { get; set; }
     }

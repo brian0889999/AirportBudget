@@ -3,16 +3,16 @@
                prominent
                elevation="0">
         <v-app-bar-nav-icon variant="text" @click.stop="toggleDrawer(!drawer)"></v-app-bar-nav-icon>
+        工務組經費預算管理平台
         <v-spacer />
         <v-spacer />
         <v-spacer />
         <v-spacer />
         <v-spacer />
-        <v-spacer />
+        <!--<v-spacer />-->
         <v-toolbar-title>經費管理/歡迎&nbsp;&nbsp;{{ user.Name }}</v-toolbar-title>
         <v-btn @click="mainRoute">首頁</v-btn>
         <v-btn @click="logout">登出</v-btn>
-
     </v-app-bar>
 </template>
 
@@ -34,7 +34,15 @@
         System: '',
         LastPasswordChangeDate: undefined,
         ErrCount: 0,
-        ErrDate: new Date(1990, 0, 1)
+        ErrDate: new Date(1990, 0, 1),
+        "Group": {
+            "GroupId": 0,
+            "GroupName": ""
+        },
+        "RolePermission": {
+            "RolePermissionId": 0,
+            "PermissionType": 0
+        }
 };
     const user = ref<UserViewModel>(defaultUser); 
     onMounted(async () => {
@@ -48,7 +56,7 @@
             if (response.StatusCode === 200) {
                 const data = response.Data;
                 user.value = data ? data : defaultUser;
-                console.log(user.value);
+                //console.log(user.value);
             }
             else {
                 console.error(response.Data ?? response.Message);

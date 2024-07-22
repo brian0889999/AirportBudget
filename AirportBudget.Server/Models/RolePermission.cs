@@ -11,7 +11,7 @@ namespace AirportBudget.Server.Models
         public int RolePermissionId { get; set; }
 
         public int PermissionType { get; set; }
-        [JsonIgnore]
+
         public ICollection<User>? Users { get; set; }
     }
 }

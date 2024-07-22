@@ -11,52 +11,52 @@
                     <v-form ref="editFormRef" v-model="isValid">
                         <v-row>
                             <v-col cols="12" sm="6">
-                                <v-text-field v-model="formattedPurchasedate"
+                                <v-text-field v-model="formattedRequestDate"
                                               label="請購日期"
                                               type="date"
                                               :rules="[rules.required]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-select v-model="editedItem.Text"
+                                <v-select v-model="editedItem.Type"
                                           label="類別"
-                                          :items="textValues"
-                                          :bg-color="textColor"
+                                          :items="typeValues" item-title="text" item-value="value"
+                                          :bg-color="typeColor"
                                           :rules="[rules.required]"
-                                          :readonly="text"></v-select>
+                                          :readonly="type"></v-select>
                             </v-col>
                             <v-col cols="12">
-                                <v-text-field v-model="editedItem.Note"
+                                <v-text-field v-model="editedItem.Description"
                                               label="摘要"
                                               :rules="[rules.required]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-text-field v-model="editedItem.PurchaseMoney"
+                                <v-text-field v-model="editedItem.RequestAmount"
                                               label="請購金額"
                                               type="number"
                                               :rules="[rules.lessThanOrEqualToBudget]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-text-field v-model="formattedPayDate"
+                                <v-text-field v-model="formattedPaymentDate"
                                               label="支付日期"
                                               type="date"
                                               ></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-text-field v-model="editedItem.PayMoney"
+                                <v-text-field v-model="editedItem.PaymentAmount"
                                               label="實付金額"
                                               type="number"
                                               :rules="[rules.lessThanOrEqualToPurchaseMoney]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-select v-model="editedItem.People"
+                                <v-select v-model="editedItem.RequestPerson"
                                           :items="userNames"
                                           label="請購人"
-                                          :readonly="isStatusC"
-                                          :bg-color="getTextColor(isStatusC)"
+                                          :readonly="IsPermissionId2"
+                                          :bg-color="getTextColor(IsPermissionId2)"
                                           :rules="[rules.required]"></v-select>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-select v-model="editedItem.People1"
+                                <v-select v-model="editedItem.PaymentPerson"
                                           :items="userNames"
                                           label="支付人"
                                           ></v-select>
@@ -66,24 +66,20 @@
                                               label="備註"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-checkbox v-model="editedItem.All"
+                                <v-checkbox v-model="editedItem.ExTax"
                                             label="未稅"
-                                            :disabled="isStatusC"
-                                            :class="getColourDisabled(isStatusC)"
-                                            true-value="V"
-                                            false-value=""></v-checkbox>
+                                            :disabled="IsPermissionId2"
+                                            :class="getColourDisabled(IsPermissionId2)"></v-checkbox>
                             </v-col>
                             <v-col cols="12" sm="6">
-                                <v-checkbox v-model="editedItem.True"
+                                <v-checkbox v-model="editedItem.Reconciled"
                                             label="已對帳"
-                                            :disabled="isStatusC"
-                                            :class="getColourDisabled(isStatusC)"
-                                            true-value="V"
-                                            false-value=""></v-checkbox>
+                                            :disabled="IsPermissionId2"
+                                            :class="getColourDisabled(IsPermissionId2)"></v-checkbox>
                             </v-col>
                             <v-col cols="12">
-                                <v-select v-model="editedItem.Year1"
-                                          :items="year1"
+                                <v-select v-model="editedItem.AmountYear"
+                                          :items="years"
                                           label="年度"
                                           :rules="[rules.required]"></v-select>
                             </v-col>
@@ -103,11 +99,13 @@
 <script setup lang="ts">
     import { defineProps, defineEmits, ref, reactive, watch, type PropType, onMounted, computed } from 'vue';
     import { type ApiResponse, get, put, post } from '@/services/api';
-    import type { UserDataModel, SoftDeleteViewModel, MoneyRawData, UserViewModel } from '@/types/apiInterface';
+    import type { UserDataModel, BudgetAmountViewModel, SelectedDetail, SoftDeleteViewModel, MoneyRawData, UserViewModel } from '@/types/apiInterface';
+    import type { SelectedOption } from '@/types/vueInterface';
+    import { TypeMapping } from '@/utils/mappings';
     import { RULES } from '@/constants/constants';
     const props = defineProps({
         item: {
-            type: Object as PropType<MoneyRawData>,
+            type: Object as PropType<BudgetAmountViewModel>,
             required: true
         },
         isEdit: {
@@ -115,7 +113,7 @@
             required: true
         },
         searchGroup: {
-            type: String,
+            type: Number,
             //required: true
         },
         limitBudget: {
@@ -133,15 +131,15 @@
     //}>();
     const editFormRef = ref<HTMLFormElement | null>(null);
     const saveBtn = props.isEdit ? '儲存' : '新增';
-    const text = props.isEdit ? true : false;
-    const textColor = props.isEdit ? 'grey-lighten-1' : '';
-    const textValues = ref<string[]>(['一般']);
+    const type = props.isEdit ? true : false;
+    const typeColor = props.isEdit ? 'grey-lighten-1' : '';
+    const typeValues = ref<SelectedOption[]>([{ text: '一般', value: 1 }]);
     const emit = defineEmits(['update', 'cancel', 'create']);
 
-    const isStatusC = computed(() => props.user.Status1 === 'C'); // 使用者權限是C,return true
+    const IsPermissionId2 = computed(() => props.user.RolePermissionId === 2); // 使用者權限是2,return true
     const limitBudget = computed(() => props.limitBudget ?? 0);
     const limitPurchaseMoney = computed(() => {
-        const value = editedItem.value.PurchaseMoney;
+        const value = editedItem.value.RequestAmount;
         return typeof value === 'string' ? parseFloat(value) : value ?? 0; // 轉成數字
     });
 
@@ -167,7 +165,7 @@
     };
 
 
-    const editedItem = ref<MoneyRawData>({ ...props.item });
+    const editedItem = ref<BudgetAmountViewModel>({ ...props.item });
     watch(() => props.item, (newValue) => {
         editedItem.value = { ...newValue };
     });
@@ -175,13 +173,16 @@
     //console.log('editedItem', editedItem.value);
     //console.log('props.searchGroup:', props.searchGroup);
 
-    const users = ref<UserDataModel[]>([]);
+    const users = ref<UserViewModel[]>([]);
     const userNames = ref<string[]>([]);
-    const year1 = ref<string[]>(['111', '112', '113']);
+    // 取得當年度的民國年
+    const currentYear: number = new Date().getFullYear() - 1911;
+    // 生成從111到當年度的年份陣列
+    const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i));
     const fetchUsers = async () => {
         try {
             const url = 'api/User';
-            const response: ApiResponse<UserDataModel[]> = await get<UserDataModel[]>(url);
+            const response: ApiResponse<UserViewModel[]> = await get<UserViewModel[]>(url);
                 if(response.StatusCode == 200) {
                     users.value = response.Data!;
                     /*console.log('users:', users);*/
@@ -195,17 +196,17 @@
         }
     };
     //console.log('limitBudget', props.limitBudget);
-  const formattedPurchasedate = computed<string>({
-    get: () => (editedItem.value.Purchasedate ? editedItem.value.Purchasedate.split('T')[0] : ''),
+    const formattedRequestDate = computed<string>({
+      get: () => (editedItem.value.RequestDate ? editedItem.value.RequestDate.split('T')[0] : ''),
     set: (value: string) => {
-        editedItem.value.Purchasedate = value ? value + "T00:00:00" : '';
+        editedItem.value.RequestDate = value ? value + "T00:00:00" : '';
     }
 });
 
-const formattedPayDate = computed<string>({
-    get: () => (editedItem.value.PayDate ? editedItem.value.PayDate.split('T')[0] : ''),
+    const formattedPaymentDate = computed<string>({
+    get: () => (editedItem.value.PaymentDate ? editedItem.value.PaymentDate.split('T')[0] : ''),
     set: (value: string) => {
-        editedItem.value.PayDate = value ? value + "T00:00:00" : '';
+        editedItem.value.PaymentDate = value ? value + "T00:00:00" : '';
     }
 });
 
@@ -214,27 +215,27 @@ const formattedPayDate = computed<string>({
         if (!valid) return;
 
         // DB的Year1欄位存字串
-        const data: SoftDeleteViewModel = {
+        const data: SelectedDetail = {
             ...editedItem.value,
-            Year1: editedItem.value.Year1 ? editedItem.value.Year1.toString() : "",
-            PayMoney: editedItem.value.PayMoney ? Number(editedItem.value.PayMoney) : 0,
-            PurchaseMoney: editedItem.value.PurchaseMoney ? Number(editedItem.value.PurchaseMoney) : 0
+            //PaymentAmount: editedItem.value.PaymentAmount ? Number(editedItem.value.PaymentAmount) : 0,
+            //RequestAmount: editedItem.value.RequestAmount ? Number(editedItem.value.RequestAmount) : 0
         };
 
-        const url = '/api/Money3';
+        const url = '/api/BudgetAmount';
         try {
             //console.log('123', data);
             let response: ApiResponse<any>;
-            if (data.ID1) {
+            if (data.BudgetAmountId) {
                 //console.log('345', data);
+                if (!data.PaymentDate) data.PaymentDate = undefined;
                 response = await put<any>(url, data);
                 //console.log(response?.Data || response?.Message);
                 // 更新成功後的處理
                 emit('update', editedItem.value);
             } else {
-                // 在這裡將Year欄位賦值為Year1的值
-                data.Year = editedItem.value.Year1 ? parseInt(editedItem.value.Year1, 10) : 0;
-                if (!data.PayDate) data.PayDate = null; // 如果PayDate沒有值,傳空值
+                // 在這裡將CreatedYear欄位賦值為AmountYear的值
+                //data.CreatedYear = editedItem.value.AmountYear ? parseInt(editedItem.value.AmountYear, 10) : 0;
+                data.CreatedYear = editedItem.value.AmountYear ? editedItem.value.AmountYear : 0;
                 console.log('adding data:',data);
                 response = await post<any>(url, data);
                 //console.log('response.Data:', response?.Data);

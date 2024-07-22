@@ -4,6 +4,7 @@ using AirportBudget.Server.Datas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AirportBudget.Server.Migrations
 {
     [DbContext(typeof(AirportBudgetDbContext))]
-    partial class AirportBudgetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240719025419_InitialCreate8")]
+    partial class InitialCreate8
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

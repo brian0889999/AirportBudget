@@ -14,7 +14,13 @@ namespace AirportBudget.Server.Mappings
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.Trim()));
 
             CreateMap<Budget, BudgetViewModel>();
+            CreateMap<User, User>();
+            CreateMap<UserViewModel, User>();
+            CreateMap<User, UserViewModel>()
+                .ForMember(dest => dest.System, opt => opt.MapFrom(src => src.System != null ? src.System.Trim() : ""));
             CreateMap<Group, GroupViewModel>();
+            CreateMap<RolePermission, RolePermissionViewModel>();
+            CreateMap<AllocateFormViewModel, BudgetAmount>();
 
             //CreateMap<SoftDeleteViewModel, Money3>()
             //.ForMember(dest => dest.Money, opt => opt.Ignore());

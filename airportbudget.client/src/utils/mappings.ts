@@ -69,5 +69,36 @@ export const ReverseGroupIdMapping: { text: string, value: number }[] = [
     { text: '南竿站', value: 7 },
     { text: '政風室', value: 8 },
     { text: '航務組', value: 9 },
-    { text: '總務組', value: 10 }
+    { text: '總務組', value: 10 },
+    { text: '企劃行政組', value: 11 },
+    { text: '營運安全組', value: 12 },
 ];
+
+
+//export const TypeMapping: { text: string, value: number }[] = [
+//    { text: '一般', value: 1 },
+//    { text: '勻入', value: 2 },
+//    { text: '勻出', value: 3 },
+//];
+
+export const TypeMapping: { [key: number] : string } = {
+    1 : "一般" ,
+    2 : "勻入",
+    3 : "勻出",
+};
+
+
+export const groupMapping: Record<number, string> = {
+    1: '工務組',
+    2: '業務組',
+    3: '人事室',
+    4: '中控室',
+    5: '北竿站',
+    6: '企劃組',
+    7: '南竿站',
+    8: '政風室',
+    9: '航務組',
+    10: '總務組',
+    11: '企劃行政組',
+    12: '營運安全組'
+};

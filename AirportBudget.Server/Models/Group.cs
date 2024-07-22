@@ -14,13 +14,18 @@ namespace AirportBudget.Server.Models
         [StringLength(50)]
         public string GroupName { get; set; } = string.Empty;
 
-        [JsonIgnore]
+
         public ICollection<User>? Users { get; set; }
 
         [JsonIgnore]
         public ICollection<Budget>? Budgets { get; set; }
+
+
         public ICollection<Subject6>? Subject6s { get; set; }
+
+
         public ICollection<Subject7>? Subject7s { get; set; }
+
         public ICollection<Subject8>? Subject8s { get; set; }
     }
 }
