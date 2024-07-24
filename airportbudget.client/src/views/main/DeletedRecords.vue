@@ -26,14 +26,20 @@
                 </v-row>
             </v-col>
         </v-row>
+
+        <v-pagination v-model="page"
+                      :length="pageCount"
+                      :total-visible="7"
+                      color="primary"></v-pagination>
         <v-data-table :headers="headers"
-                      :items="items"
+                      :items="paginatedItems"
                       item-key="name"
                       items-per-page="12"
                       loading-text="讀取中請稍後..."
                       items-per-page-text="每頁筆數"
                       :loading="loading"
-                      style="width: 100%;">
+                      style="width: 100%;"
+                      hide-default-footer>
             <template v-slot:item.RequestDate="{ item }">
                 {{ formatDate(item.RequestDate) }}
             </template>
@@ -47,13 +53,13 @@
                 {{ formatNumber(item.PaymentAmount) }}
             </template>
             <template v-slot:item.actions="{ item }">
-               <v-btn @click="restoreData(item)"
-                      color="primary">
-                還原
-               </v-btn>
+                <v-btn @click="restoreData(item)"
+                       color="primary">
+                    還原
+                </v-btn>
             </template>
         </v-data-table>
-       
+
     </v-container>
 </template>
 
@@ -100,7 +106,8 @@ const searchDeletedRecords = async () => {
         const response: ApiResponse<BudgetAmountViewModel[]> = await get<BudgetAmountViewModel[]>(url, data);
         //console.log(response.Message);
         if (response.StatusCode == 200) {
-            items.value = response?.Data ?? []; 
+            items.value = response?.Data ?? [];
+            page.value = 1;
             //console.log(items.value);
         }
     }
@@ -125,6 +132,15 @@ const searchDeletedRecords = async () => {
             }
         }
     };
+
+const page = ref(1);
+const itemsPerPage = 12;
+const pageCount = computed(() => Math.ceil(items.value.length / itemsPerPage));
+const paginatedItems = computed(() => {
+  const start = (page.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return items.value.slice(start, end);
+});
 </script>
 
 <style scoped>

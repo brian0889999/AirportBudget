@@ -108,7 +108,8 @@ export interface GetIdDataViewModel {
     GroupId: number,
     Subject6: string,
     Subject7: string,
-    Subject8: string
+    Subject8: string,
+    CreatedYear: number,
 }
 
 //export interface SelectedBudgetModel {
@@ -353,6 +354,7 @@ export interface AllocateForm {
     Type: number,
     ExTax: boolean,
     Reconciled: boolean,
+    IsValid: boolean,
 }
 export interface AllocateFormViewModel {
     ID: number,

@@ -30,11 +30,12 @@ namespace AirportRenovate.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmountRepository, IGenericRepository<Budget> BudgetRepository, IMapper mapper) : ControllerBase
+public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmountRepository, IGenericRepository<Budget> BudgetRepository, IMapper mapper, AirportBudgetDbContext context) : ControllerBase
 {
     private readonly IGenericRepository<BudgetAmount> _BudgetAmountRepository = BudgetAmountRepository;
     private readonly IGenericRepository<Budget> _BudgetRepository = BudgetRepository;
     private readonly IMapper _mapper = mapper;
+    private readonly AirportBudgetDbContext _context = context;
 
     /// <summary>
     /// Groups的預算資料查詢
@@ -72,14 +73,14 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("SelectedDetail")]
-    public IActionResult GetDetailData(int BudgetId, string? BudgetName, int? Year, int? GroupId, string? Description = null, int? RequestAmount = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
+    public IActionResult GetDetailData(int BudgetId, string? BudgetName, int? Year, int? GroupId, string? Description = null, int? RequestAmountStart = null, int? RequestAmountEnd = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
     {
         try
         {
             Expression<Func<BudgetAmount, bool>> condition = item => true;
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.BudgetName == BudgetName);
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.GroupId == GroupId && BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
-            //condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
+            condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
             condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.Status == "O");
             condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
 
@@ -89,9 +90,14 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 condition = condition.And(BudgetAmount => BudgetAmount.Description != null && BudgetAmount.Description.Contains(Description));
             }
 
-            if (RequestAmount.HasValue)
+            if (RequestAmountStart.HasValue)
             {
-                condition = condition.And(BudgetAmount => BudgetAmount.RequestAmount == RequestAmount.Value);
+                condition = condition.And(BudgetAmount => BudgetAmount.RequestAmount >= RequestAmountStart.Value);
+            }
+
+            if (RequestAmountEnd.HasValue)
+            {
+                condition = condition.And(BudgetAmount => BudgetAmount.RequestAmount <= RequestAmountEnd.Value);
             }
 
             var results = _BudgetAmountRepository.GetByCondition(condition)
@@ -153,6 +159,12 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     [HttpPost("ByAllocateForm")]
     public IActionResult PostByAllocateForm([FromBody] List<AllocateFormViewModel> requests)
     {
+
+        if (requests == null || requests.Count != 2)
+        {
+            return BadRequest("You must provide exactly two records.");
+        }
+
         try
         {
             var entities = _mapper.Map<List<BudgetAmount>>(requests);
@@ -224,10 +236,47 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
             }
             //else
-            //{
-            //    condition = condition.And(BudgetAmount => BudgetAmount.AmountSerialNumber == request.AmountSerialNumber);
+            //{   // Type為勻出入,跑這邊的程式碼
+            //    // 查找第一筆資料
+            //    condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
+            //    var firstBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
+
+            //    if (firstBudgetAmount == null)
+            //    {
+            //        return NotFound("First record not found");
+            //    }
+
+            //    // 查找關聯的第二筆資料
+            //    Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
+            //    var secondBudgetAmount = _BudgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
+
+            //    if (secondBudgetAmount == null)
+            //    {
+            //        return NotFound("Linked record not found");
+            //    }
+
+            //    // 更新第一筆資料
+            //    BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, firstBudgetAmount);
+            //    updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+            //    updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+            //    updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+            //    updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            //    updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            //    _BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+
+            //    // 更新第二筆資料
+            //    BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
+            //    updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+            //    updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+            //    updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+            //    updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            //    updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            //    _BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+            //    return Ok("Records updated successfully");
             //}
 
+            // Type為一般,跑這邊的程式碼
             var ExistBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
             if (ExistBudgetAmount == null)
             {
@@ -246,6 +295,121 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             return StatusCode(500, $"Internal server error: {ex}");
         }
     }
+
+
+    /// <summary>
+    /// 更新勻出入細項
+    /// </summary>
+    /// <returns>更新結果</returns>
+    [HttpPut("ByUpdateAllocate")]
+    public IActionResult DoAllocateUpdate([FromBody] BudgetAmount request)
+    {
+        try
+        {      
+                if(request.Type == AmountType.Ordinary)
+                {
+                return BadRequest("非勻出入資料");
+                }
+
+                 request.Budget = null;
+                 Expression<Func<BudgetAmount, bool>> condition = item => true;
+
+                // Type為勻出入,跑這邊的程式碼
+                // 查找第一筆資料
+                condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
+                var firstBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
+
+                if (firstBudgetAmount == null)
+                {
+                    return NotFound("First record not found");
+                }
+
+                // 查找關聯的第二筆資料
+                Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
+                var secondBudgetAmount = _BudgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
+
+                if (secondBudgetAmount == null)
+                {
+                    return NotFound("Linked record not found");
+                }
+
+            //// 使用新的實體進行更新
+            //BudgetAmount updatedFirstBudgetAmount = new BudgetAmount
+            //{
+            //    BudgetAmountId = firstBudgetAmount.BudgetAmountId,
+            //    LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId,
+            //    BudgetId = firstBudgetAmount.BudgetId,
+            //    Type = firstBudgetAmount.Type,
+            //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
+            //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
+            //    // 其他屬性依需求映射
+            //};
+
+            //_BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+
+            //BudgetAmount updatedSecondBudgetAmount = new BudgetAmount
+            //{
+            //    BudgetAmountId = secondBudgetAmount.BudgetAmountId,
+            //    LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId,
+            //    BudgetId = secondBudgetAmount.BudgetId,
+            //    Type = secondBudgetAmount.Type,
+            //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
+            //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
+            //    // 其他屬性依需求映射
+            //};
+
+            //_BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+            // 使用新的實體進行更新
+            BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount>(request);
+            updatedFirstBudgetAmount.BudgetAmountId = firstBudgetAmount.BudgetAmountId;
+            updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+            updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+            updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+            updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            _BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+
+            BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount>(request);
+            updatedSecondBudgetAmount.BudgetAmountId = secondBudgetAmount.BudgetAmountId;
+            updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+            updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+            updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+            updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            _BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+            //// 更新第一筆資料
+            //_context.Entry(firstBudgetAmount).State = EntityState.Detached;// 將實體從上下文中分離
+            //BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, firstBudgetAmount);
+            //updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+            //updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+            //updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+            //updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            //updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+
+
+            //// 更新第二筆資料
+            //_context.Entry(secondBudgetAmount).State = EntityState.Detached;
+            //BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
+            //updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+            //updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+            //updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+            //updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            //updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+
+            //_BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+            //_BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+            return Ok("Records updated successfully");
+            
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
 
     /// <summary>
     /// 軟刪除

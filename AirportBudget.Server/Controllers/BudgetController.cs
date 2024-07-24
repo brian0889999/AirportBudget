@@ -34,13 +34,13 @@ public class BudgetController(IGenericRepository<Budget> BudgetRepository, IMapp
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("GetBudgetId")]
-    public IActionResult GetBudgetId(int GroupId, string Subject6, string Subject7, string? Subject8) 
+    public IActionResult GetBudgetId(int GroupId, string Subject6, string Subject7, string? Subject8, int CreatedYear) 
     {
         try
         {
             Expression<Func<Budget, bool>> condition = item => true;
             condition = condition.And(Budget => Budget.GroupId == GroupId && Budget.Subject6.Contains(Subject6));
-            condition = condition.And(Budget => Budget.Subject7.Contains(Subject7));
+            condition = condition.And(Budget => Budget.Subject7.Contains(Subject7) && Budget.CreatedYear == CreatedYear);
             if (!string.IsNullOrEmpty(Subject8))
             {
                 condition = condition.And(Budget => Budget.Subject8.Contains(Subject8));

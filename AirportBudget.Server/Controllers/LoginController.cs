@@ -39,27 +39,27 @@ public class LoginController : ControllerBase
     //    }
     //}
 
-    [HttpGet]
+    //[HttpGet]
 
-    public async Task<IActionResult> GetUsers()
-    {
-        try
-        {
-            var users = await _users.GetAllAsync();
-            foreach (var user in users)
-            {
-                if (user.Password != null)
-                {
-                    user.Password = _dESEncryptionUtility.DecryptDES(user.Password);
-                }
-            }
-            return Ok(users);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex}");
-        }
-    }
+    //public async Task<IActionResult> GetUsers()
+    //{
+    //    try
+    //    {
+    //        var users = await _users.GetAllAsync();
+    //        foreach (var user in users)
+    //        {
+    //            if (user.Password != null)
+    //            {
+    //                user.Password = _dESEncryptionUtility.DecryptDES(user.Password);
+    //            }
+    //        }
+    //        return Ok(users);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, $"Internal server error: {ex}");
+    //    }
+    //}
 
     [HttpPost]
 
@@ -75,7 +75,10 @@ public class LoginController : ControllerBase
             var password = _dESEncryptionUtility.EncryptDES(loginForm.Password);
             var user = _users.GetByCondition(x => x.Account == loginForm.Account).FirstOrDefault();
             if (user != null && user.Password == password)
-            {
+            {   if(user.Status == false)
+                {
+                    return Unauthorized("使用者已停用");
+                }
                 var jwtToken = _tokenService.GenerateJwtToken(user);
 
                 return Ok(jwtToken);
@@ -89,7 +92,7 @@ public class LoginController : ControllerBase
         }
         else
         {
-            return Unauthorized("登入失敗"); // 回傳登入失敗
+            return Unauthorized("未收到帳號資訊"); // 回傳登入失敗
         }
     }
 }

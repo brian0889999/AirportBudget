@@ -83,8 +83,8 @@ export const ReverseGroupIdMapping: { text: string, value: number }[] = [
 
 export const TypeMapping: { [key: number] : string } = {
     1 : "一般" ,
-    2 : "勻入",
-    3 : "勻出",
+    2 : "勻出",
+    3 : "勻入",
 };
 
 

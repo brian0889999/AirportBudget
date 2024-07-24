@@ -43,7 +43,7 @@
                        @click="handleBudgetClick(item)">
                     內容
                 </v-btn>
-                <v-btn v-if="canAdd"
+                <v-btn v-if="canAllocate"
                        color="primary"
                        @click="openAllocatePage(item)"
                        class="mb-2">
@@ -224,6 +224,7 @@
                      @cancel="cancelEdit" />
         <AllocatePage v-if="showAllocatePage"
                       :data="allocateForm.data"
+                      :searchYear="searchYear"
                       @cancel="cancelAllocatePage"/>
     </v-container>
 </template>
@@ -327,11 +328,6 @@
     const limitBudget = ref<number>(0); // 新增修改資料時的限制金額
     const showAllocatePage = ref<boolean>(false);
 
-    const allocateForm = ref({
-        visible: false,
-        data: {},
-    })
-
     const defaultUser: UserViewModel = {
         UserId: 0,
         Name: '',
@@ -389,6 +385,33 @@
         //}
     };
 
+    const defaultSelectedBudget: SelectedBudgetModel = {
+        BudgetId: 0,
+        BudgetName: '',
+        GroupId: 0,
+        GroupName: '',
+        Subject6: '',
+        Subject7: '',
+        Subject8: '',
+        AnnualBudgetAmount: 0,
+        FinalBudgetAmount: 0,
+        General: 0,
+        Out: 0,
+        UseBudget: 0,
+        In: 0,
+        InActual: 0,
+        InBalance: 0,
+        SubjectActual: 0,
+        End: 0,
+        Type: 0,
+        RequestAmount: 0,
+        PaymentAmount: 0
+    };
+    const allocateForm = ref({
+        visible: false,
+        data: { ...defaultSelectedBudget },
+    })
+
     const user = ref<UserViewModel>(defaultUser); 
 
     const getCurrentUser = async () => {
@@ -401,6 +424,7 @@
             //console.log('user', user.value);
             searchGroup.value = user.value.GroupId;
             defaultBudgetAmount.RequestPerson = user.value.Name;
+            defaultBudgetAmount.PaymentPerson = user.value.Name;
         }
         else {
             console.error(response.Data ?? response.Message);
@@ -410,7 +434,7 @@
         console.error(error.message);
     }
 };
-    const filteredGroups = computed(() => {
+    const filteredGroups = computed(() => { //權限設定
         if (user.value.RolePermissionId === 3) {
             const group = groups.value.find(group => group.value === searchGroup.value);
             return group ? [{ text: group.text, value: group.value }] : [];
@@ -418,7 +442,7 @@
         return groups.value;
     });
 
-    const canAdd = computed(() => {
+    const canAdd = computed(() => { //權限設定
         if (user.value.RolePermissionId === 3) {
             return false;
         }
@@ -427,7 +451,7 @@
         }
     });
 
-    const canEdit = (item: SelectedDetail) => {
+    const canEdit = (item: SelectedDetail) => { //權限設定
         //console.log('item: ',item);
         if (user.value.RolePermissionId === 1) {
             return true;
@@ -436,11 +460,11 @@
             return false;
         }
         else if (user.value.RolePermissionId === 2 && !item.Reconciled) {
-            return item.RequestPerson === user.value.Name;  // 權限是C時資料的請購人與使用者相同時才能編輯資料,已對帳的只有A權限可以編輯
+            return item.RequestPerson === user.value.Name;  // 權限是B時資料的請購人與使用者相同時才能編輯資料,已對帳的只有A權限可以編輯
         }
         return false;
     };
-
+    const canAllocate = computed(() => user.value.RolePermissionId === 1 ? true : false); //權限設定
     const previousPage = async () => {
         isSelectedItem.value = false;
         try {
@@ -493,13 +517,14 @@
         }
     };
 
-    const fetchSelectedDetail = async (BudgetId: number, Description?: string, RequestAmount?: number, BudgetName?: string, GroupId?: number, Year?: number ) => {
+    const fetchSelectedDetail = async (BudgetId: number, Description?: string, RequestAmountStart?: number, RequestAmountEnd?: number, BudgetName?: string, GroupId?: number, Year?: number ) => {
         const url = '/api/BudgetAmount/SelectedDetail';
         //const data: any = { BudgetName, GroupId, Year };
-        const data: any = { BudgetId };
+        const data: any = { BudgetId, Year: searchYear.value };
 
         if (Description) data.Description = Description;
-        if (RequestAmount) data.RequestAmount = RequestAmount;
+        if (RequestAmountStart) data.RequestAmountStart = RequestAmountStart;
+        if (RequestAmountEnd) data.RequestAmountEnd = RequestAmountEnd;
         //console.log(data);
         try {
             loading.value = true;
@@ -648,6 +673,7 @@
         showDetailForm.value = true;
         isEdit.value = false;
         limitBudget.value = selectedItem.value[0].UseBudget ?? 0;
+        defaultBudgetAmount.AmountYear = searchYear.value;
         editingItem.value = defaultBudgetAmount;
     };
 
@@ -697,10 +723,10 @@
     };
 
 
-    const handleSearch = async (payload: { Description: string, RequestAmount: number }) => {
+    const handleSearch = async (payload: { Description: string, RequestAmountStart: number, RequestAmountEnd: number }) => {
         // 處理查詢邏輯
-        //console.log('Description:', payload.Description, 'Number:', payload.RequestAmount);
-        await fetchSelectedDetail(currentBudgetId.value, payload.Description, payload.RequestAmount);
+        //console.log('Description:', payload.Description, 'Number:', payload.RequestAmountStart, 'Number:', payload.RequestAmountEnd);
+        await fetchSelectedDetail(currentBudgetId.value, payload.Description, payload.RequestAmountStart, payload.RequestAmountEnd);
     };
 
     const openAllocatePage = (item: SelectedBudgetModel) => {

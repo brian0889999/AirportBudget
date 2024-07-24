@@ -89,7 +89,6 @@ const rules = RULES;
                 localStorage.setItem('jwtToken', jwtToken);
                 router.push({ name: 'main' });
             }
-
         } catch (error) {
             console.error('登入失敗:', error); // 處理登入失敗的情況
         } finally {

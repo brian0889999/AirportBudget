@@ -126,23 +126,22 @@
                             </v-row>
 
                         </v-card-text>
-                        <!--<v-card-actions>-->
-                        <v-row class="ml-2 mb-2">
-                            <v-col>
-                                <v-btn type="submit"
-                                       color="primary"
-                                       class="mr-3"
-                                       size="large">
-                                    確認
-                                </v-btn>
-                                <v-btn color="secondary"
-                                       @click="cancelData"
-                                       size="large">
-                                    取消
-                                </v-btn>
-                            </v-col>   
-                        </v-row>
-                        <!--</v-card-actions>-->
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn color="primary"
+                                   variant="outlined"
+                                   @click="cancelData"
+                                   size="large">
+                                取消
+                            </v-btn>
+                            <v-btn type="submit"
+                                   variant="elevated"
+                                   color="primary"
+                                   class="mr-3"
+                                   size="large">
+                                確認
+                            </v-btn>
+                        </v-card-actions>
                     </v-card>
                 </v-col>
             </v-row>
@@ -167,8 +166,13 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
             type: Object as () => SelectedBudgetModel,
             require: true
         },
+        searchYear: {
+            type: Number,
+            require: true
+        }
     });
-    console.log('props.data:', props.data);
+    //console.log('props.data:', props.data);
+    //console.log('year', props.searchYear);
 const sourceData: SelectedBudgetModel = props.data!;
 const emit = defineEmits(['cancel']);
 const AllocateFormRef = ref<HTMLFormElement | null>(null);
@@ -236,8 +240,8 @@ const toUTC = (date: Date) => {
         Subject7_1: '',
         Subject8_1: '',
         RequestPerson: '',
-        CreatedYear: currentYear, // 抓當年度
-        AmountYear: currentYear,
+        CreatedYear: props.searchYear!, 
+        AmountYear: props.searchYear!,
         RequestDate: '',
         Description: '',
         PaymentPerson: '',
@@ -245,6 +249,7 @@ const toUTC = (date: Date) => {
         Type: 0,
         ExTax: false,
         Reconciled: false,
+        IsValid: true,
     };
 
     const groupMapping: Record<number, string> = {
@@ -492,13 +497,14 @@ const toUTC = (date: Date) => {
             GroupId: dataIn.GroupId,
             Subject6: dataIn.Subject6_1,
             Subject7: dataIn.Subject7_1,
-            Subject8: dataIn.Subject8_1 ?? ""
+            Subject8: dataIn.Subject8_1 ?? "",
+            CreatedYear: dataIn.CreatedYear
         }
         try {
             //console.log(getIdDataViewModel);
             const response: ApiResponse<any> = await get<any>(idUrl, getIdDataViewModel);
             if (response.StatusCode == 200) {
-                console.log(response.Data);
+                //console.log(response.Data);
                 dataIn.BudgetId = response.Data.BudgetId;
             }
         } catch (error) {
@@ -510,7 +516,7 @@ const toUTC = (date: Date) => {
             dataOut,
             dataIn
         ];
-        console.log('data', data);
+        //console.log('data', data);
         try {
             const response: ApiResponse<any> = await post<any>(url, data);
             if (response.StatusCode == 200) {

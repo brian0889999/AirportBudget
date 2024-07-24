@@ -5,7 +5,7 @@
         <v-dialog v-model="editDialog" max-width="600px">-->
             <v-card>
                 <v-card-title>
-                    <span class="headline">編輯項目</span>
+                    <h2 class="headline">{{ cardTitle }}</h2>
                 </v-card-title>
                 <v-card-text>
                     <v-form ref="editFormRef" v-model="isValid">
@@ -88,8 +88,9 @@
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn color="blue darken-1" text="true" @click="canceledit">取消</v-btn>
-                    <v-btn color="blue darken-1" text="true" @click="submitform">{{ saveBtn }}</v-btn>
+                    <!--<v-btn color="blue darken-1" text="true" @click="canceledit">取消</v-btn>-->
+                    <v-btn color="primary" text="true" @click="canceledit" variant="outlined" size="large">取消</v-btn>
+                    <v-btn color="primary" text="true" @click="submitform" variant="elevated" size="large">{{ saveBtn }}</v-btn>
                 </v-card-actions>
             </v-card>
         <!--</v-dialog>-->
@@ -133,9 +134,13 @@
     const saveBtn = props.isEdit ? '儲存' : '新增';
     const type = props.isEdit ? true : false;
     const typeColor = props.isEdit ? 'grey-lighten-1' : '';
-    const typeValues = ref<SelectedOption[]>([{ text: '一般', value: 1 }]);
+    const typeValues = ref<SelectedOption[]>([
+        { text: '一般', value: 1 },
+        { text: '勻出', value: 2 },
+        { text: '勻入', value: 3 },
+    ]);
     const emit = defineEmits(['update', 'cancel', 'create']);
-
+    const cardTitle = props.isEdit ? '編輯預算資料' : '新增預算資料';
     const IsPermissionId2 = computed(() => props.user.RolePermissionId === 2); // 使用者權限是2,return true
     const limitBudget = computed(() => props.limitBudget ?? 0);
     const limitPurchaseMoney = computed(() => {
@@ -221,13 +226,14 @@
             //RequestAmount: editedItem.value.RequestAmount ? Number(editedItem.value.RequestAmount) : 0
         };
 
-        const url = '/api/BudgetAmount';
+        let url = '/api/BudgetAmount';
         try {
             //console.log('123', data);
             let response: ApiResponse<any>;
             if (data.BudgetAmountId) {
                 //console.log('345', data);
                 if (!data.PaymentDate) data.PaymentDate = undefined;
+                if (data.Type !== 1) url = '/api/BudgetAmount/ByUpdateAllocate';
                 response = await put<any>(url, data);
                 //console.log(response?.Data || response?.Message);
                 // 更新成功後的處理

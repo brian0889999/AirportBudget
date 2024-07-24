@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AirportBudget.Server.Migrations
 {
     [DbContext(typeof(AirportBudgetDbContext))]
-    [Migration("20240712021216_InitialCreate3")]
-    partial class InitialCreate3
+    [Migration("20240723081401_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,10 +33,22 @@ namespace AirportBudget.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetId"));
 
+                    b.Property<int>("AnnualBudgetAmount")
+                        .HasColumnType("int");
+
                     b.Property<string>("BudgetName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CreatedYear")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FinalBudgetAmount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Subject6")
                         .IsRequired()
@@ -53,10 +65,9 @@ namespace AirportBudget.Server.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
                     b.HasKey("BudgetId");
+
+                    b.HasIndex("GroupId");
 
                     b.ToTable("Budget");
                 });
@@ -69,7 +80,7 @@ namespace AirportBudget.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetAmountId"));
 
-                    b.Property<int?>("BudgetDetailId")
+                    b.Property<int>("AmountYear")
                         .HasColumnType("int");
 
                     b.Property<int>("BudgetId")
@@ -86,7 +97,10 @@ namespace AirportBudget.Server.Migrations
                     b.Property<bool>("ExTax")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("GroupId")
+                    b.Property<bool>("IsValid")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("LinkedBudgetAmountId")
                         .HasColumnType("int");
 
                     b.Property<int>("PaymentAmount")
@@ -111,7 +125,7 @@ namespace AirportBudget.Server.Migrations
                     b.Property<int>("RequestAmount")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("RequestDate")
+                    b.Property<DateTime?>("RequestDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("RequestPerson")
@@ -127,53 +141,11 @@ namespace AirportBudget.Server.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
                     b.HasKey("BudgetAmountId");
 
-                    b.HasIndex("BudgetDetailId");
-
                     b.HasIndex("BudgetId");
-
-                    b.HasIndex("GroupId");
 
                     b.ToTable("BudgetAmount");
-                });
-
-            modelBuilder.Entity("AirportBudget.Server.Models.BudgetDetail", b =>
-                {
-                    b.Property<int>("BudgetDetailId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetDetailId"));
-
-                    b.Property<int>("AnnualBudgetAmount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("BudgetAmountId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("BudgetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FinalBudgetAmount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GroupId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
-                    b.HasKey("BudgetDetailId");
-
-                    b.HasIndex("BudgetId");
-
-                    b.HasIndex("GroupId");
-
-                    b.ToTable("BudgetDetail");
                 });
 
             modelBuilder.Entity("AirportBudget.Server.Models.Group", b =>
@@ -208,6 +180,100 @@ namespace AirportBudget.Server.Migrations
                     b.HasKey("RolePermissionId");
 
                     b.ToTable("RolePermission");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject6", b =>
+                {
+                    b.Property<int>("Subject6Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Subject6Id"));
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject6Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Subject6SerialCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Subject6Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("Subject6");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject7", b =>
+                {
+                    b.Property<int>("Subject7Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Subject7Id"));
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject7FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Subject7Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Subject7SerialCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Subject7Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("Subject7");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject8", b =>
+                {
+                    b.Property<int>("Subject8Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Subject8Id"));
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject8FullSerialCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Subject8Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Subject8SerialCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Subject8Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("Subject8");
                 });
 
             modelBuilder.Entity("AirportBudget.Server.Models.User", b =>
@@ -264,40 +330,57 @@ namespace AirportBudget.Server.Migrations
                     b.ToTable("User");
                 });
 
-            modelBuilder.Entity("AirportBudget.Server.Models.BudgetAmount", b =>
+            modelBuilder.Entity("AirportBudget.Server.Models.Budget", b =>
                 {
-                    b.HasOne("AirportBudget.Server.Models.BudgetDetail", null)
-                        .WithMany("BudgetAmounts")
-                        .HasForeignKey("BudgetDetailId");
-
-                    b.HasOne("AirportBudget.Server.Models.Budget", "Budget")
-                        .WithMany()
-                        .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AirportBudget.Server.Models.Group", null)
-                        .WithMany("BudgetAmounts")
-                        .HasForeignKey("GroupId");
-
-                    b.Navigation("Budget");
-                });
-
-            modelBuilder.Entity("AirportBudget.Server.Models.BudgetDetail", b =>
-                {
-                    b.HasOne("AirportBudget.Server.Models.Budget", "Budget")
-                        .WithMany()
-                        .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("AirportBudget.Server.Models.Group", "Group")
-                        .WithMany("BudgetDetails")
+                        .WithMany("Budgets")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.BudgetAmount", b =>
+                {
+                    b.HasOne("AirportBudget.Server.Models.Budget", "Budget")
+                        .WithMany("BudgetAmounts")
+                        .HasForeignKey("BudgetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Budget");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject6", b =>
+                {
+                    b.HasOne("AirportBudget.Server.Models.Group", "Group")
+                        .WithMany("Subject6s")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject7", b =>
+                {
+                    b.HasOne("AirportBudget.Server.Models.Group", "Group")
+                        .WithMany("Subject7s")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.Subject8", b =>
+                {
+                    b.HasOne("AirportBudget.Server.Models.Group", "Group")
+                        .WithMany("Subject8s")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Group");
                 });
@@ -321,16 +404,20 @@ namespace AirportBudget.Server.Migrations
                     b.Navigation("RolePermission");
                 });
 
-            modelBuilder.Entity("AirportBudget.Server.Models.BudgetDetail", b =>
+            modelBuilder.Entity("AirportBudget.Server.Models.Budget", b =>
                 {
                     b.Navigation("BudgetAmounts");
                 });
 
             modelBuilder.Entity("AirportBudget.Server.Models.Group", b =>
                 {
-                    b.Navigation("BudgetAmounts");
+                    b.Navigation("Budgets");
 
-                    b.Navigation("BudgetDetails");
+                    b.Navigation("Subject6s");
+
+                    b.Navigation("Subject7s");
+
+                    b.Navigation("Subject8s");
 
                     b.Navigation("Users");
                 });

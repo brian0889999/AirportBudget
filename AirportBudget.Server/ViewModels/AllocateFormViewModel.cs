@@ -27,5 +27,6 @@
         public int Type { get; set; } = 0;
         public bool ExTax { get; set; } = false;
         public bool Reconciled { get; set; } = false;
+        public bool IsValid { get; set; } = true;
     }
 }
