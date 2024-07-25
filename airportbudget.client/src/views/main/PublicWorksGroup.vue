@@ -211,6 +211,7 @@
                     <v-icon>mdi-pencil</v-icon>
                 </v-btn>
                 <v-btn icon="mdi-delete" size="small" @click="deleteItem(item)" v-if="canEdit(item)" />
+                <v-btn v-if="item.Type != 1" color="primary" @click="linkData(item)">LinkData</v-btn>
             </template>
         </v-data-table>
         <detail-form v-if="showDetailForm"
@@ -738,6 +739,31 @@
         showAllocatePage.value = false;
     }
 
+    const linkData = async (item: BudgetAmountViewModel) => {
+        //console.log('test');
+        //console.log(item);
+        const url = '/api/BudgetAmount/ByLinkData';
+        let data;
+        if (item.LinkedBudgetAmountId) {
+            data = {
+                LinkedBudgetAmountId: item.LinkedBudgetAmountId
+            };
+        }
+        else {
+            console.log('這個資料沒有關聯Id');
+        }
+       
+        try {
+            const response: ApiResponse<BudgetAmountViewModel> = await get<BudgetAmountViewModel>(url, data);
+            //console.log(response.StatusCode);
+            if (response.StatusCode == 200) {
+                console.log(response.Data);
+            }
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
      onMounted(async () => {
          await getCurrentUser();
         /* console.log('Mounted user status:', user.value.Status1); // 增加 log*/

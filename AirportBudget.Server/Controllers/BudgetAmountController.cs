@@ -511,6 +511,35 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     }
 
 
+    /// <summary>
+    /// Groups的預算資料查詢
+    /// </summary>
+    /// <returns>查詢結果</returns>
+    [HttpGet("ByLinkData")]
+    public IActionResult GetLinkData(int LinkedBudgetAmountId) // 前端傳Year值,後端回傳符合Year值的工務組資料
+    {
+        Expression<Func<BudgetAmount, bool>> condition = item => true;
+        condition = BudgetAmount => BudgetAmount.Budget != null && BudgetAmount.BudgetAmountId == LinkedBudgetAmountId;
+        condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
+        try
+        {
+            var results = _BudgetAmountRepository.GetByCondition(condition)
+            .Include(BudgetAmount => BudgetAmount.Budget)
+            .ThenInclude(Budget => Budget!.Group)
+            .FirstOrDefault();
+            // .OrderBy(BudgetAmount => BudgetAmount.Budget!.BudgetName)
+            //.ToList();
+
+            //List<BudgetAmountViewModel> budgetAmountViewModels = _mapper.Map<List<BudgetAmountViewModel>>(results);
+            BudgetAmountViewModel budgetAmountViewModel = _mapper.Map<BudgetAmountViewModel>(results);
+            return Ok(budgetAmountViewModel);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
 
     ///// <summary>
     ///// 查詢ID1最大值

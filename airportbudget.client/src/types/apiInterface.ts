@@ -43,6 +43,7 @@ export interface BudgetAmountViewModel {
     BudgetId: number;
     //AmountSerialNumber: number;
     IsValid: boolean;
+    LinkedBudgetAmountId?: number;
     Budget?: {
         BudgetId: number;
         BudgetName: string;
