@@ -30,13 +30,20 @@
         </v-row>
         <v-data-table v-if="!isSelectedItem && !showAllocatePage"
                       :headers="headers"
-                      :items="computedItems"
+                      :items="paginatedItems"
                       item-key="Budget"
                       items-per-page="12"
                       loading-text="讀取中請稍後..."
                       items-per-page-text="每頁筆數"
                       :loading="loading"
-                      style="width: 100%;">
+                      style="width: 100%;"
+                      hide-default-footer>
+            <!--這邊items-per-page要跟itemsPerPage一樣-->
+            <template v-slot:top>
+                <v-pagination v-model="page"
+                              :length="pageCount"
+                              class="mb-4"></v-pagination>
+            </template>
             <template #item.action="{ item }">
                 <v-btn color="primary"
                        class="mb-2"
@@ -52,16 +59,16 @@
                 <br />
                 <v-btn v-if="item.BudgetName"
                        class="mb-2"
-                       @click="handleExcelClick(item.BudgetName)"
+                       @click="handleExcelClick(item)"
                        color="primary">
                     EXCEL
                 </v-btn>
             </template>
             <!--<template #item.action="{ item }">
-                <v-btn v-if="canAdd"
-                       color="primary"
-                       @click="openAllocatePage(item)">勻出</v-btn>
-            </template>-->
+        <v-btn v-if="canAdd"
+               color="primary"
+               @click="openAllocatePage(item)">勻出</v-btn>
+    </template>-->
             <template #item.AnnualBudgetAmount="{ item }">
                 <span :class="{'negative-number': (item.AnnualBudgetAmount ?? 0) < 0}">
                     {{ formatNumber(item.AnnualBudgetAmount) }}
@@ -176,7 +183,8 @@
         </v-data-table>
         <v-data-table v-if="isSelectedItem && !showDetailForm && !showAllocatePage"
                       :headers="selectedDetailHeaders"
-                      :items="selectedDetailItem">
+                      :items="detailPaginatedItems"
+                      hide-default-footer>
             <template #top>
                 <search-fields v-if="isSelectedItem && !showDetailForm && !showAllocatePage"
                                @search="handleSearch"
@@ -186,6 +194,9 @@
                         <v-btn color="primary" @click="addItem" v-if="canAdd">新增</v-btn>
                     </v-col>
                 </v-row>
+                    <v-pagination v-model="detailPage"
+                                  :length="detailPageCount"
+                                  class="mb-4"></v-pagination>
             </template>
             <template #item.Type="{ item }">
                 {{ TypeMapping[item.Type] }}
@@ -210,8 +221,9 @@
                 <v-btn icon size="small" class="mr-2" @click="editItem(item)" v-if="canEdit(item)">
                     <v-icon>mdi-pencil</v-icon>
                 </v-btn>
-                <v-btn icon="mdi-delete" size="small" @click="deleteItem(item)" v-if="canEdit(item)" />
-                <v-btn v-if="item.Type != 1" color="primary" @click="linkData(item)">LinkData</v-btn>
+                <v-btn icon="mdi-delete" class="mr-2" size="small" @click="deleteItem(item)" v-if="canEdit(item)" color="red-darken-1" />
+                <!--<v-btn v-if="item.Type != 1" color="primary" @click="linkBudgetData(item)">{{ linkBudgetDataBtn(item) }}</v-btn>-->
+                <v-btn icon="mdi-cable-data" v-if="item.LinkedBudgetAmountId" size="small" @click="linkBudgetData(item)" color="black" />
             </template>
         </v-data-table>
         <detail-form v-if="showDetailForm"
@@ -227,6 +239,10 @@
                       :data="allocateForm.data"
                       :searchYear="searchYear"
                       @cancel="cancelAllocatePage"/>
+        <v-dialog v-model="linkBudgetForm.visible">
+            <LinkBudgetForm :data="linkBudgetForm.data"
+                            @cancel="cancelLinkBudgetForm" />
+        </v-dialog>
     </v-container>
 </template>
 
@@ -235,14 +251,16 @@
     import axios from 'axios';
     import { ref, computed, onMounted, watch } from 'vue';
     import { get, post, put, type ApiResponse } from '@/services/api';
+    import { downloadFile, postDataAndDownloadFile } from '@/services/excelAPI';
     import type { VDataTable } from 'vuetify/components';
-    import type { BudgetAmountViewModel, Budget, SelectedBudgetModel, MoneyItem, MoneyRawData, SoftDeleteViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
+    import type { BudgetAmountViewModel, Budget, SelectedBudgetModel, BudgetAmountExcelViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
     import type { SelectedOption } from '@/types/vueInterface';
     import { formatDate, sumByCondition, groupBy, formatNumber, formatBool } from '@/utils/functions';
     import { AuthMapping, TypeMapping } from '@/utils/mappings';
     import DetailForm from '@/components/modules/DetailForm.vue';
     import SearchFields from '@/components/modules/SearchFields.vue';
     import AllocatePage from '@/components/modules/AllocatePage.vue';
+    import LinkBudgetForm from '@/components/modules/LinkBudgetForm.vue';
     
     const loading = ref<boolean>(false);
     type ReadonlyHeaders = VDataTable['$props']['headers'];
@@ -328,6 +346,7 @@
     const currentBudgetName = ref<string>(''); // 儲存 budgetValue 的變數
     const limitBudget = ref<number>(0); // 新增修改資料時的限制金額
     const showAllocatePage = ref<boolean>(false);
+    const linkBudgetDataBtn = (item: any) => item.Type == 2 ? '勻入資料' : '勻出資料'; 
 
     const defaultUser: UserViewModel = {
         UserId: 0,
@@ -470,6 +489,8 @@
         isSelectedItem.value = false;
         try {
             await fetchBudgetData(); // 重新取一次資料(不管有沒有更新或刪除)
+            page.value = 1;
+            detailPage.value = 1;
         }
         catch (error) {
             console.error(error);
@@ -526,6 +547,8 @@
         if (Description) data.Description = Description;
         if (RequestAmountStart) data.RequestAmountStart = RequestAmountStart;
         if (RequestAmountEnd) data.RequestAmountEnd = RequestAmountEnd;
+        //if (RequestAmountStart !== undefined) data.RequestAmountStart = Number(RequestAmountStart);
+        //if (RequestAmountEnd !== undefined) data.RequestAmountEnd = Number(RequestAmountEnd);
         //console.log(data);
         try {
             loading.value = true;
@@ -620,19 +643,23 @@
         await fetchSelectedDetail(budget.BudgetId);
     };
 
-    const handleExcelClick = async (budget: string) => {
+    const handleExcelClick = async (budget: BudgetAmountExcelViewModel) => {
         try {
-            const response = await axios.get(`/api/Money3/ExportToExcel?budget=${budget}`, {
-                responseType: 'blob'
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${budget}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
+            budget.Year = searchYear.value;
+            console.log(budget);
+            //const url = '/api/BudgetAmount/ExportToExcel';
+            //const fileBlob = await postDataAndDownloadFile(url, budget);
+
+            ////const blobUrl = window.URL.createObjectURL(new Blob([blob]));
+            //const blobUrl = window.URL.createObjectURL(fileBlob);
+            //const link = document.createElement('a');
+            //link.href = blobUrl;
+            //link.setAttribute('download', `${searchYear.value}維護${budget.BudgetName}.xlsx`); // 指定下載的檔案名
+            //document.body.appendChild(link);
+            //link.click();
+            //document.body.removeChild(link);
         } catch (error) {
-            console.error(error);
+            console.error('Error downloading the file', error);
         }
     };
 
@@ -674,6 +701,7 @@
         showDetailForm.value = true;
         isEdit.value = false;
         limitBudget.value = selectedItem.value[0].UseBudget ?? 0;
+        defaultBudgetAmount.CreatedYear = searchYear.value; //CreatedYear 賦值,使用者不能改
         defaultBudgetAmount.AmountYear = searchYear.value;
         editingItem.value = defaultBudgetAmount;
     };
@@ -739,10 +767,14 @@
         showAllocatePage.value = false;
     }
 
-    const linkData = async (item: BudgetAmountViewModel) => {
+    const linkBudgetForm = ref({
+        visible: false,
+        data: { ...defaultBudgetAmount },
+    });
+    const linkBudgetData = async (item: BudgetAmountViewModel) => {
         //console.log('test');
         //console.log(item);
-        const url = '/api/BudgetAmount/ByLinkData';
+        const url = '/api/BudgetAmount/ByLinkBudgetData';
         let data;
         if (item.LinkedBudgetAmountId) {
             data = {
@@ -751,19 +783,48 @@
         }
         else {
             console.log('這個資料沒有關聯Id');
+            return;
         }
        
         try {
             const response: ApiResponse<BudgetAmountViewModel> = await get<BudgetAmountViewModel>(url, data);
             //console.log(response.StatusCode);
             if (response.StatusCode == 200) {
-                console.log(response.Data);
+                //console.log(response.Data);
+                linkBudgetForm.value.data = response.Data ?? { ...defaultBudgetAmount };
+                linkBudgetForm.value.visible = true;
             }
         }
         catch (error) {
             console.error(error);
         }
     }
+
+    const cancelLinkBudgetForm = () => {
+        linkBudgetForm.value.visible = false;
+    }
+
+    // pagination
+    const page = ref(1);
+    const itemsPerPage = 12;
+    const pageCount = computed(() => Math.ceil(computedItems.value.length / itemsPerPage));
+    const paginatedItems = computed(() => {
+        const start = (page.value - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        return computedItems.value.slice(start, end);
+    });
+
+    const detailPage = ref(1);
+    const detailItemsPerPage = 10;
+    const detailPageCount = computed(() => Math.ceil(selectedDetailItem.value.length / detailItemsPerPage));
+    const detailPaginatedItems = computed(() => {
+        const start = (detailPage.value - 1) * detailItemsPerPage;
+        const end = start + detailItemsPerPage;
+        return selectedDetailItem.value.slice(start, end);
+    });
+
+
+
      onMounted(async () => {
          await getCurrentUser();
         /* console.log('Mounted user status:', user.value.Status1); // 增加 log*/

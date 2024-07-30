@@ -14,7 +14,6 @@ using AutoMapper.QueryableExtensions;
 using AirportBudget.Server.DTOs;
 using AirportBudget.Server.ViewModels;
 using System.Text.RegularExpressions;
-//using Money = AirportRenovate.Server.Models.Money;
 using MathNet.Numerics.Statistics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;

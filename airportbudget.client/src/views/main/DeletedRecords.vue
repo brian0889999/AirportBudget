@@ -40,6 +40,9 @@
                       :loading="loading"
                       style="width: 100%;"
                       hide-default-footer>
+            <template v-slot:item.Type="{ item }">
+                {{ TypeMapping[item.Type] }}
+            </template>
             <template v-slot:item.RequestDate="{ item }">
                 {{ formatDate(item.RequestDate) }}
             </template>
@@ -72,6 +75,7 @@ import type { BudgetAmountViewModel, SelectedDetail, SoftDeleteViewModel } from 
 import { get, put, type ApiResponse } from '@/services/api';
 import type { VDataTable } from 'vuetify/components';
 import { formatDate, formatNumber } from '@/utils/functions';
+import { TypeMapping } from '@/utils/mappings';
 type ReadonlyHeaders = VDataTable['$props']['headers'];
   
     const loading = ref(false);
@@ -81,7 +85,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i)); 
     const searchYear = ref<number>(113);
     const descriptionInput = ref<string>('');
-    const items = ref<BudgetAmountViewModel[]>([]);
+    const deletedRecords = ref<BudgetAmountViewModel[]>([]);
     const headers: ReadonlyHeaders = [
         { title: '請購日期', key: 'RequestDate' },
         { title: '類別', key: 'Type' },
@@ -106,7 +110,7 @@ const searchDeletedRecords = async () => {
         const response: ApiResponse<BudgetAmountViewModel[]> = await get<BudgetAmountViewModel[]>(url, data);
         //console.log(response.Message);
         if (response.StatusCode == 200) {
-            items.value = response?.Data ?? [];
+            deletedRecords.value = response?.Data ?? [];
             page.value = 1;
             //console.log(items.value);
         }
@@ -135,11 +139,11 @@ const searchDeletedRecords = async () => {
 
 const page = ref(1);
 const itemsPerPage = 12;
-const pageCount = computed(() => Math.ceil(items.value.length / itemsPerPage));
+const pageCount = computed(() => Math.ceil(deletedRecords.value.length / itemsPerPage));
 const paginatedItems = computed(() => {
   const start = (page.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  return items.value.slice(start, end);
+    return deletedRecords.value.slice(start, end);
 });
 </script>
 

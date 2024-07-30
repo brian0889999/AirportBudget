@@ -476,14 +476,14 @@ const toUTC = (date: Date) => {
         const dataOut = {
             ...AllocateForm.value,
             Type: 2, // 改成帶參數進去
-            Remarks: groupMapping[AllocateForm.value.InGroupId] + `${AllocateForm.value.Subject7_1 + '00'}`,
+            //Remarks: groupMapping[AllocateForm.value.InGroupId] + `${AllocateForm.value.Subject7_1 + '00'}`,
             GroupId: AllocateForm.value.GroupId,
             AmountYear: AllocateForm.value.AmountYear
         };
         const dataIn = {
             ...dataOut,
             Type: 3,
-            Remarks: groupMapping[AllocateForm.value.GroupId] + `${AllocateForm.value.Subject7.substring(0, 4) + '00'}`,
+            //Remarks: groupMapping[AllocateForm.value.GroupId] + `${AllocateForm.value.Subject7.substring(0, 4) + '00'}`,
             GroupId: AllocateForm.value.InGroupId
         }
         //console.log('dataOut', dataOut);

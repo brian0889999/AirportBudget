@@ -223,7 +223,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
 
     const editItem = (item: UserViewModel) => {
         // 加入編輯邏輯
-        console.log('Edit item:', item);
+        //console.log('Edit item:', item);
         isEditMode.value = true;
         isEditing.value = true;
         privilegeManagementForm.value = { ...item };
@@ -237,7 +237,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
 
     const rules = RULES;
     const saveItem = async () => {
-        console.log(privilegeManagementForm.value);
+        //console.log(privilegeManagementForm.value);
         const { valid } = await privilegeManagementFormRef.value?.validate();
         if (!valid) return;
         // 保存邏輯
@@ -251,15 +251,15 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
                 let response: ApiResponse<any>;
                 if (data.UserId) { // 如果是編輯用put,新增用post
                          response = await put<any>(url, data);
-                        console.log(response.Data);
+                        //console.log(response.Data);
                 }
                 else
                 {
                          response = await post<any>(url, data);
-                        console.log(response.Data);
+                        //console.log(response.Data);
                 };
                 // 這裡可以加入成功處理的邏輯
-                console.log("操作成功");
+                //console.log("操作成功");
                 await fetchUsers();
             } catch (error) {
                 // 處理錯誤

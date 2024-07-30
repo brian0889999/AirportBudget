@@ -241,7 +241,7 @@
             } else {
                 // 在這裡將CreatedYear欄位賦值為AmountYear的值
                 //data.CreatedYear = editedItem.value.AmountYear ? parseInt(editedItem.value.AmountYear, 10) : 0;
-                data.CreatedYear = editedItem.value.AmountYear ? editedItem.value.AmountYear : 0;
+                //data.CreatedYear = editedItem.value.AmountYear ? editedItem.value.AmountYear : 0;
                 console.log('adding data:',data);
                 response = await post<any>(url, data);
                 //console.log('response.Data:', response?.Data);

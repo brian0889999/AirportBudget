@@ -12,9 +12,7 @@ using NPOI.SS.Formula.Functions;
 using AirportBudget.Server.Mappings;
 using AutoMapper.QueryableExtensions;
 using AirportBudget.Server.DTOs;
-using AirportRenovate.Server.ViewModels;
 using System.Text.RegularExpressions;
-//using Money = AirportRenovate.Server.Models.Money;
 using MathNet.Numerics.Statistics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -22,10 +20,13 @@ using System.Linq.Expressions;
 using LinqKit;
 using AirportBudget.Server.ViewModels;
 using AirportBudget.Server.Enums;
+using NPOI.SS.UserModel;
+using AirportBudget.Server.Utilities;
+using NPOI.SS.Util;
 
 
 
-namespace AirportRenovate.Server.Controllers;
+namespace AirportBudget.Server.Controllers;
 
 [Authorize]
 [ApiController]
@@ -55,7 +56,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             var results = _BudgetAmountRepository.GetByCondition(condition)
             .Include(BudgetAmount => BudgetAmount.Budget)
             .ThenInclude(Budget => Budget!.Group)
-             .OrderBy(BudgetAmount => BudgetAmount.Budget!.BudgetName)
+            .OrderBy(BudgetAmount => BudgetAmount.Budget!.BudgetName)
             .ToList();
 
             List<BudgetAmountViewModel> budgetAmountViewModels = _mapper.Map<List<BudgetAmountViewModel>>(results);
@@ -73,14 +74,14 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("SelectedDetail")]
-    public IActionResult GetDetailData(int BudgetId, string? BudgetName, int? Year, int? GroupId, string? Description = null, int? RequestAmountStart = null, int? RequestAmountEnd = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
+    public IActionResult GetDetailData(int BudgetId, string? BudgetName = null, int? Year = null, int? GroupId = null, string? Description = null, int? RequestAmountStart = null, int? RequestAmountEnd = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
     {
         try
         {
             Expression<Func<BudgetAmount, bool>> condition = item => true;
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.BudgetName == BudgetName);
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.GroupId == GroupId && BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
-            condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
+            //condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
             condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.Status == "O");
             condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
 
@@ -128,7 +129,6 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     {
         try
         {
-            //request.Money = null;
             request.Budget = null;
             // 檢查 request 的 AmountSerialNumber 是否為 0 且 Type 是否為 "一般"
             //if (request.AmountSerialNumber == 0 && request.Type == AmountType.Ordinary)
@@ -419,9 +419,35 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     public IActionResult DoSoftDelete([FromBody] BudgetAmount request)
     {
         try
-        {
+        {   
+            if(request != null && request.Type != AmountType.Ordinary) // 勻出入資料兩筆要同時刪除
+            {
+                
+                if(request == null)
+                {
+                    return BadRequest("No request");
+                }
+
+                var BudgetAmount1 = _BudgetAmountRepository.GetById(request.BudgetAmountId);
+                var BudgetAmount2 = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                if (BudgetAmount1 == null)
+                {
+                    return NotFound("not exist");
+                }
+                if (BudgetAmount2 == null)
+                {
+                    return NotFound("not exist");
+                }
+
+                // 更新Status欄位
+                BudgetAmount1!.IsValid = false;
+                BudgetAmount2!.IsValid = false;
+                _BudgetAmountRepository.Update(BudgetAmount1);
+                _BudgetAmountRepository.Update(BudgetAmount2);
+                return Ok("success");
+            }
             //var BudgetAmount = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.ID1 == request.ID1).FirstOrDefault();
-            var BudgetAmount = _BudgetAmountRepository.GetById(request.BudgetAmountId);
+            var BudgetAmount = _BudgetAmountRepository.GetById(request!.BudgetAmountId);
             if (BudgetAmount == null)
             {
                 return NotFound("not exist");
@@ -483,7 +509,25 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     public IActionResult RestoreData([FromBody] BudgetAmount request)
     {
         try
-        {
+        {   if(request != null && request.Type != AmountType.Ordinary)
+            {
+                var BudgetAmount1 = _BudgetAmountRepository.GetById(request.BudgetAmountId);
+                var BudgetAmount2 = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                if (BudgetAmount1 == null)
+                {
+                    return NotFound("not exist");
+                }
+                if (BudgetAmount2 == null)
+                {
+                    return NotFound("not exist");
+                }
+                BudgetAmount1!.IsValid = true;
+                BudgetAmount2!.IsValid = true;
+                _BudgetAmountRepository.Update(BudgetAmount1);
+                _BudgetAmountRepository.Update(BudgetAmount2);
+                return Ok("success");
+            }
+
             if (request == null || request.BudgetAmountId <= 0)
             {
                 return BadRequest("Invalid request.");
@@ -515,7 +559,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     /// Groups的預算資料查詢
     /// </summary>
     /// <returns>查詢結果</returns>
-    [HttpGet("ByLinkData")]
+    [HttpGet("ByLinkBudgetData")]
     public IActionResult GetLinkData(int LinkedBudgetAmountId) // 前端傳Year值,後端回傳符合Year值的工務組資料
     {
         Expression<Func<BudgetAmount, bool>> condition = item => true;
@@ -540,89 +584,93 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         }
     }
 
+    [HttpPost("ExportToExcel")]
+    public async Task<IActionResult> ExportToExcel([FromBody] BudgetAmountExcelViewModel request)
+    {
+        //var data = GetGroupData(request.Year, request.GroupId);
+        var dataDetail = GetDetailData(request.BudgetId);
+        IWorkbook workbook = new XSSFWorkbook();
+        ISheet sheet = workbook.CreateSheet("Sheet1");
 
-    ///// <summary>
-    ///// 查詢ID1最大值
-    ///// </summary>
-    ///// <returns>查詢結果</returns>
-    //[HttpGet("ID1")]
-    //public async Task<IActionResult> GetID1()
+        // 設定樣式
+        ICellStyle cellStyle = ExcelStyleHelper.CreateCellStyle(workbook);
+        ICellStyle headerStyle = ExcelStyleHelper.CreateHeaderStyle(workbook);
+        ICellStyle yellowCellStyle = ExcelStyleHelper.CreateYellowCellStyle(workbook);
+
+        // 表格標題
+        IRow titleRow = sheet.CreateRow(0);
+        titleRow.CreateCell(0).SetCellValue("交通部民用航空局");
+        titleRow.GetCell(0).CellStyle = headerStyle;
+        sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(0, 0, 0, 11));
+
+        IRow subTitleRow = sheet.CreateRow(1);
+        subTitleRow.CreateCell(0).SetCellValue("臺北國際航空站");
+        subTitleRow.GetCell(0).CellStyle = headerStyle;
+        sheet.AddMergedRegion(new CellRangeAddress(1, 1, 0, 11));
+
+        IRow yearRow = sheet.CreateRow(2);
+        ICell yearCell = yearRow.CreateCell(0);
+        yearCell.SetCellValue($"{request.Year}年度預算控制表");
+        yearCell.CellStyle = headerStyle;
+        sheet.AddMergedRegion(new CellRangeAddress(2, 2, 0, 11));
+
+        IRow row = sheet.CreateRow(3);
+        row.CreateCell(0).SetCellValue("組室別：");
+        sheet.AddMergedRegion(new CellRangeAddress(3, 3, 0, 1));
+        row.GetCell(0).CellStyle = cellStyle;
+        row.CreateCell(2).SetCellValue(request.GroupName);
+        row.GetCell(2).CellStyle = cellStyle;
+        //sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 2, 2));
+
+        //FillGroupData(sheet, request, cellStyle, yellowCellStyle);
+
+        using (var stream = new MemoryStream())
+        {
+            workbook.Write(stream);
+            var content = stream.ToArray();
+
+            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        }
+    }
+
+    //private void FillGroupData(ISheet sheet, BudgetAmountExcelViewModel data, ICellStyle cellStyle, ICellStyle yellowCellStyle)
     //{
-    //    try
+    //    IRow row = sheet.CreateRow(3);
+    //    row.CreateCell(0).SetCellValue("組室別：");
+    //    row.GetCell(0).CellStyle = cellStyle;
+    //    row.CreateCell(2).SetCellValue(data.GroupName);
+    //    row.GetCell(2).CellStyle = cellStyle;
+    //    sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 2, 2));
+
+    //    // 填寫其他資料
+    //    // 可以依照原始程式碼逐行填寫資料
+    //}
+
+    //private void FillDetailData(ISheet sheet, List<BudgetAmount> dataDetail, ICellStyle cellStyle)
+    //{
+    //    for (int i = 0; i < dataDetail.Count; i++)
     //    {
-    //        Expression<Func<BudgetAmount, bool>> condition = item => true;
-    //        //condition = condition.And(BudgetAmount => BudgetAmount.Money!.Budget == Budget);
-    //        // 取得資料庫中ID1欄位的最大值並遞增
-    //        int maxID1 = await _BudgetAmountRepository.GetAll().MaxAsync(m => (int?)m.ID1) ?? 0;
-    //        if (maxID1 <= 0)
+    //        IRow row = sheet.CreateRow(16 + i);
+    //        row.CreateCell(0).SetCellValue(dataDetail[i].RequestDate.ToString("yyyy/MM/dd"));
+    //        row.CreateCell(1).SetCellValue(dataDetail[i].Type);
+    //        row.CreateCell(2).SetCellValue(dataDetail[i].Description);
+    //        row.CreateCell(3).SetCellValue(dataDetail[i].RequestAmount);
+    //        row.CreateCell(4).SetCellValue(dataDetail[i].PaymentDate.ToString("yyyy/MM/dd"));
+    //        row.CreateCell(5).SetCellValue(dataDetail[i].PaymentAmount);
+    //        row.CreateCell(6).SetCellValue(dataDetail[i].RequestPerson);
+    //        row.CreateCell(7).SetCellValue(dataDetail[i].PaymentPerson);
+    //        row.CreateCell(8).SetCellValue(dataDetail[i].Remarks);
+    //        row.CreateCell(9).SetCellValue(dataDetail[i].ExTax);
+    //        row.CreateCell(10).SetCellValue(dataDetail[i].Reconciled);
+
+    //        for (int j = 0; j <= 10; j++)
     //        {
-    //            return NotFound("No records found with valid ID1");
+    //            row.GetCell(j).CellStyle = cellStyle;
     //        }
-    //        int ID1 = maxID1 + 1;
-    //        return Ok(ID1);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
     //    }
     //}
 
-    // [HttpPost]
-    // public async Task<IActionResult> Create([FromBody] BalanceFormViewModel balanceForm)
-    // {
-    //     //User
-    //     try
-    //     {
-    //         var results = await _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.Group1 == balanceForm.Group
-    //&& BudgetAmount.Money != null && BudgetAmount.Money.Group == balanceForm.Group
-    //&& BudgetAmount.Money.Budget == balanceForm.Budget
-    //&& BudgetAmount.Year == balanceForm.Year && BudgetAmount.Money.Year == balanceForm.Year
-    //&& (BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C")))
-    //.Include(BudgetAmount => BudgetAmount.Money)
-    //  .ToListAsync();
 
-    //         var query = results
-    //         .GroupBy(m3 => new {
-    //             Subject6 = m3.Money != null ? m3.Money.Subject6 : "",
-    //             Subject7 = m3.Money != null ? m3.Money.Subject7 : "",
-    //             Subject8 = m3.Money != null ? m3.Money.Subject8 : "",
-    //             BudgetYear = m3.Money != null ? m3.Money.BudgetYear : 0,
-    //             Final = m3.Money != null && decimal.TryParse(m3.Money.Final, out var final) ? final : 0m,
-    //             Budget = m3.Money != null ? m3.Money.Budget : "",
-    //             Group = m3.Money != null ? m3.Money.Group : "",
-    //             m3.Year
-    //         })
-    //         .Select(g => new BudgetDetailsViewModel
-    //         {
-    //             Budget = g.Key.Budget ?? "",
-    //             Subject6 = g.Key.Subject6 ?? "",
-    //             Group = g.Key.Group ?? "",
-    //             Subject7 = g.Key.Subject7 ?? "",
-    //             Subject8 = g.Key.Subject8 ?? "",
-    //             BudgetYear = g.Key.BudgetYear,
-    //             Final = g.Key.Final,
-    //             General = g.Sum(x => x.Text == "一般" ? x.PurchaseMoney : 0),
-    //             Out = g.Sum(x => x.Text == "勻出" ? x.PurchaseMoney : 0),
-    //             UseBudget = g.Key.BudgetYear - g.Sum(x => x.Text == "勻出" ? x.PurchaseMoney : 0) - g.Sum(x => x.Text == "一般" ? x.PurchaseMoney : 0) + g.Key.Final,
-    //             In = g.Sum(x => x.Text == "勻入" ? x.PurchaseMoney : 0),
-    //             InActual = g.Sum(x => x.Text == "勻入" ? x.PayMoney : 0),
-    //             InBalance = g.Sum(x => x.Text == "勻入" ? x.PurchaseMoney : 0) - g.Sum(x => x.Text == "勻入" ? x.PayMoney : 0),
-    //             SubjectActual = g.Sum(x => x.Text == "勻入" ? x.PayMoney : 0) + g.Sum(x => x.Text == "一般" ? x.PayMoney : 0)
-    //         }).ToList();
-
-    //         if (!query.Any())
-    //         {
-    //             return Ok("沒有找到符合條件的資料!");
-    //         }
-
-    //         return Ok(query);
-
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-    //     }
-    // }
 
 
 }

@@ -1,7 +1,7 @@
 ﻿using AirportBudget.Server.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AirportRenovate.Server.ViewModels;
+namespace AirportBudget.Server.ViewModels;
 
 public class BudgetDetailsViewModel
 {

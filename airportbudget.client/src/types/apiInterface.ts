@@ -105,6 +105,30 @@ export interface SelectedDetail extends BudgetAmountViewModel {
     FormattedPaymentDate?: string,
 }
 
+export interface BudgetAmountExcelViewModel extends BudgetAmountViewModel {
+    BudgetId: number;
+    BudgetName: string;
+    GroupId: number;
+    GroupName: string;
+    Subject6: string;
+    Subject7: string;
+    Subject8: string;
+    AnnualBudgetAmount: number;
+    FinalBudgetAmount: number;
+    Type: number; 
+    RequestAmount: number;
+    PaymentAmount: number;
+    RequestDate: string; 
+    General: number;
+    Out: number;
+    In: number;
+    InActual: number;
+    UseBudget: number;
+    End: number;
+    InBalance: number;
+    SubjectActual: number;
+    Year: number;
+}
 export interface GetIdDataViewModel {
     GroupId: number,
     Subject6: string,

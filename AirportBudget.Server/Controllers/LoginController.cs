@@ -8,7 +8,7 @@ using AirportBudget.Server.Interfaces.Repositorys;
 using System.Linq.Expressions;
 using AirportBudget.Server.Services;
 
-namespace AirportRenovate.Server.Controllers;
+namespace AirportBudget.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

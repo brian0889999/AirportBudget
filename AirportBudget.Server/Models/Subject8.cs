@@ -12,7 +12,7 @@ namespace AirportBudget.Server.Models
 
         [Required]
         [MaxLength(100)]
-        public string Subject8Name { get; set; } =string.Empty;
+        public string Subject8Name { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]
