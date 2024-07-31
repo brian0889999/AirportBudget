@@ -24,9 +24,9 @@ namespace AirportBudget.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class Subject8Controller(IGenericRepository<Subject8> Subject8, IMapper mapper) : ControllerBase
+public class Subject8Controller(IGenericRepository<Subject8> subject8, IMapper mapper) : ControllerBase
 {
-    private readonly IGenericRepository<Subject8> _Subject8 = Subject8;
+    private readonly IGenericRepository<Subject8> _subject8 = subject8;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("Subjects8")]
@@ -38,7 +38,7 @@ public class Subject8Controller(IGenericRepository<Subject8> Subject8, IMapper m
             //{
             //    return NotFound();
             //}
-            var Subjects8 = await _Subject8.GetByCondition(s => s.GroupId == groupId && s.Subject8SerialCode != null && s.Subject8SerialCode == id).ToListAsync();
+            var Subjects8 = await _subject8.GetByCondition(s => s.GroupId == groupId && s.Subject8SerialCode != null && s.Subject8SerialCode == id).ToListAsync();
             return Ok(Subjects8);
         }
         catch (Exception ex)

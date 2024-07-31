@@ -27,9 +27,9 @@ namespace AirportBudget.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class BudgetController(IGenericRepository<Budget> BudgetRepository, IMapper mapper) : ControllerBase
+public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapper mapper) : ControllerBase
 {
-    private readonly IGenericRepository<Budget> _BudgetRepository = BudgetRepository;
+    private readonly IGenericRepository<Budget> _budgetRepository = budgetRepository;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("GetBudgetId")]
@@ -46,7 +46,7 @@ public class BudgetController(IGenericRepository<Budget> BudgetRepository, IMapp
             }
 
 
-            var result = _BudgetRepository.GetByCondition(condition).FirstOrDefault();
+            var result = _budgetRepository.GetByCondition(condition).FirstOrDefault();
 
             return Ok(result);
         }

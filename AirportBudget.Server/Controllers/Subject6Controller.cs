@@ -24,16 +24,16 @@ namespace AirportBudget.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class Subject6Controller(IGenericRepository<Subject6> Subject6, IMapper mapper) : ControllerBase
+public class Subject6Controller(IGenericRepository<Subject6> subject6, IMapper mapper) : ControllerBase
 {
-    private readonly IGenericRepository<Subject6> _Subject6 = Subject6;
+    private readonly IGenericRepository<Subject6> _subject6 = subject6;
     private readonly IMapper _mapper = mapper;
     [HttpGet("Subjects6")]
     public async Task<IActionResult> GetSubject6(int? groupId)
     {
         try
         {
-            var Subjects6 = await _Subject6.GetByCondition(t => t.GroupId == groupId).ToListAsync();
+            var Subjects6 = await _subject6.GetByCondition(t => t.GroupId == groupId).ToListAsync();
             return Ok(Subjects6);
         }
         catch (Exception ex)
@@ -52,7 +52,7 @@ public class Subject6Controller(IGenericRepository<Subject6> Subject6, IMapper m
             {
                 return Ok("這個組室沒有指定科目!");
             }
-            var Subjects6_1 = await _Subject6.GetByCondition(s => s.GroupId == groupId && s.Subject6SerialCode != null && s.Subject6SerialCode == id).ToListAsync();
+            var Subjects6_1 = await _subject6.GetByCondition(s => s.GroupId == groupId && s.Subject6SerialCode != null && s.Subject6SerialCode == id).ToListAsync();
 
             if (Subjects6_1 == null || !Subjects6_1.Any())
             {

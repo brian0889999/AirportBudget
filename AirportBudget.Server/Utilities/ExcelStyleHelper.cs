@@ -28,6 +28,10 @@ namespace AirportBudget.Server.Utilities
         public static ICellStyle CreateHeaderStyle(IWorkbook workbook)
         {
             ICellStyle headerStyle = CreateCellStyle(workbook);
+            //ICellStyle headerStyle = workbook.CreateCellStyle();
+            //headerStyle.Alignment = HorizontalAlignment.Center;
+            //headerStyle.VerticalAlignment = VerticalAlignment.Center;
+            //headerStyle.WrapText = true;
             IFont font = workbook.CreateFont();
             font.FontHeightInPoints = 16;
             font.IsBold = true;

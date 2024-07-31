@@ -239,7 +239,9 @@
                       :data="allocateForm.data"
                       :searchYear="searchYear"
                       @cancel="cancelAllocatePage"/>
-        <v-dialog v-model="linkBudgetForm.visible">
+        <v-dialog v-model="linkBudgetForm.visible"
+                  max-width="1200px"
+                  @click:outside="cancelLinkBudgetForm">
             <LinkBudgetForm :data="linkBudgetForm.data"
                             @cancel="cancelLinkBudgetForm" />
         </v-dialog>
@@ -647,17 +649,17 @@
         try {
             budget.Year = searchYear.value;
             console.log(budget);
-            //const url = '/api/BudgetAmount/ExportToExcel';
-            //const fileBlob = await postDataAndDownloadFile(url, budget);
+            const url = '/api/BudgetAmount/ExportToExcel';
+            const fileBlob = await postDataAndDownloadFile(url, budget);
 
-            ////const blobUrl = window.URL.createObjectURL(new Blob([blob]));
-            //const blobUrl = window.URL.createObjectURL(fileBlob);
-            //const link = document.createElement('a');
-            //link.href = blobUrl;
-            //link.setAttribute('download', `${searchYear.value}維護${budget.BudgetName}.xlsx`); // 指定下載的檔案名
-            //document.body.appendChild(link);
-            //link.click();
-            //document.body.removeChild(link);
+            //const blobUrl = window.URL.createObjectURL(new Blob([blob]));
+            const blobUrl = window.URL.createObjectURL(fileBlob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `${searchYear.value}維護${budget.BudgetName}.xlsx`); // 指定下載的檔案名
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } catch (error) {
             console.error('Error downloading the file', error);
         }

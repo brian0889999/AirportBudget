@@ -31,12 +31,18 @@ namespace AirportBudget.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmountRepository, IGenericRepository<Budget> BudgetRepository, IMapper mapper, AirportBudgetDbContext context) : ControllerBase
+public class BudgetAmountController(
+    IGenericRepository<BudgetAmount> budgetAmountRepository,
+    IGenericRepository<Budget> budgetRepository,
+    IMapper mapper,
+    AirportBudgetDbContext context,
+    BudgetAmountExcelExportService budgetAmountExcelExportService) : ControllerBase
 {
-    private readonly IGenericRepository<BudgetAmount> _BudgetAmountRepository = BudgetAmountRepository;
-    private readonly IGenericRepository<Budget> _BudgetRepository = BudgetRepository;
+    private readonly IGenericRepository<BudgetAmount> _budgetAmountRepository = budgetAmountRepository;
+    private readonly IGenericRepository<Budget> _budgetRepository = budgetRepository;
     private readonly IMapper _mapper = mapper;
     private readonly AirportBudgetDbContext _context = context;
+    private readonly BudgetAmountExcelExportService _budgetAmountExcelExportService = budgetAmountExcelExportService;
 
     /// <summary>
     /// Groups的預算資料查詢
@@ -53,7 +59,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
         try
         {
-            var results = _BudgetAmountRepository.GetByCondition(condition)
+            var results = _budgetAmountRepository.GetByCondition(condition)
             .Include(BudgetAmount => BudgetAmount.Budget)
             .ThenInclude(Budget => Budget!.Group)
             .OrderBy(BudgetAmount => BudgetAmount.Budget!.BudgetName)
@@ -101,7 +107,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 condition = condition.And(BudgetAmount => BudgetAmount.RequestAmount <= RequestAmountEnd.Value);
             }
 
-            var results = _BudgetAmountRepository.GetByCondition(condition)
+            var results = _budgetAmountRepository.GetByCondition(condition)
            .Include(BudgetAmount => BudgetAmount.Budget)
            .AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
            .Select(BudgetAmount =>
@@ -134,7 +140,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //if (request.AmountSerialNumber == 0 && request.Type == AmountType.Ordinary)
             //{
             //    // 取得資料庫中 ID1 欄位的最大值並遞增
-            //    int maxAmountSerialNumber = await _BudgetAmountRepository.GetAll().MaxAsync(BudgetAmount => (int?)BudgetAmount.AmountSerialNumber) ?? 0;
+            //    int maxAmountSerialNumber = await _budgetAmountRepository.GetAll().MaxAsync(BudgetAmount => (int?)BudgetAmount.AmountSerialNumber) ?? 0;
             //    request.AmountSerialNumber = maxAmountSerialNumber + 1;
             //}
 
@@ -146,7 +152,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
             BudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _BudgetAmountRepository.Add(BudgetAmount);
+            _budgetAmountRepository.Add(BudgetAmount);
 
             return Ok("Record added successfully");
         }
@@ -170,7 +176,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             var entities = _mapper.Map<List<BudgetAmount>>(requests);
 
             // 使用服務類別的方法新增多筆資料
-            _BudgetAmountRepository.AddRange(entities);
+            _budgetAmountRepository.AddRange(entities);
 
 
             // 保存更改後，檢索剛剛新增的兩筆資料
@@ -182,8 +188,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             secondEntity.LinkedBudgetAmountId = firstEntity.BudgetAmountId;
 
             // update
-            _BudgetAmountRepository.Update(firstEntity);
-            _BudgetAmountRepository.Update(secondEntity);
+            _budgetAmountRepository.Update(firstEntity);
+            _budgetAmountRepository.Update(secondEntity);
 
             return Ok("Record added successfully");
         }
@@ -207,7 +213,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     //        // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
     //        BudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
     //        BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-    //        _BudgetAmountRepository.Add(BudgetAmount);
+    //        _budgetAmountRepository.Add(BudgetAmount);
     //        BudgetAmount1.AmountSerialNumber = BudgetAmount2.AmountSerialNumber;
 
     //        //update
@@ -239,7 +245,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //{   // Type為勻出入,跑這邊的程式碼
             //    // 查找第一筆資料
             //    condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
-            //    var firstBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
+            //    var firstBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
 
             //    if (firstBudgetAmount == null)
             //    {
@@ -248,7 +254,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
 
             //    // 查找關聯的第二筆資料
             //    Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
-            //    var secondBudgetAmount = _BudgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
+            //    var secondBudgetAmount = _budgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
 
             //    if (secondBudgetAmount == null)
             //    {
@@ -262,7 +268,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //    updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
             //    updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             //    updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            //    _BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+            //    _budgetAmountRepository.Update(updatedFirstBudgetAmount);
 
             //    // 更新第二筆資料
             //    BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
@@ -271,13 +277,13 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //    updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
             //    updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             //    updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            //    _BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+            //    _budgetAmountRepository.Update(updatedSecondBudgetAmount);
 
             //    return Ok("Records updated successfully");
             //}
 
             // Type為一般,跑這邊的程式碼
-            var ExistBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
+            var ExistBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
             if (ExistBudgetAmount == null)
             {
                 return NotFound("Record not found");
@@ -287,7 +293,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             // 檢查 People 和 People1 欄位，若為 null 則存空值
             ExistBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             ExistBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _BudgetAmountRepository.Update(updatedBudgetAmount);
+            _budgetAmountRepository.Update(updatedBudgetAmount);
             return Ok("Record updated successfully");
         }
         catch (Exception ex)
@@ -317,7 +323,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 // Type為勻出入,跑這邊的程式碼
                 // 查找第一筆資料
                 condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
-                var firstBudgetAmount = _BudgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
+                var firstBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
 
                 if (firstBudgetAmount == null)
                 {
@@ -326,7 +332,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
 
                 // 查找關聯的第二筆資料
                 Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
-                var secondBudgetAmount = _BudgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
+                var secondBudgetAmount = _budgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
 
                 if (secondBudgetAmount == null)
                 {
@@ -345,7 +351,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //    // 其他屬性依需求映射
             //};
 
-            //_BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+            //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
 
             //BudgetAmount updatedSecondBudgetAmount = new BudgetAmount
             //{
@@ -358,7 +364,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //    // 其他屬性依需求映射
             //};
 
-            //_BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+            //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
 
             // 使用新的實體進行更新
             BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount>(request);
@@ -368,7 +374,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
             updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _BudgetAmountRepository.Update(updatedFirstBudgetAmount);
+            _budgetAmountRepository.Update(updatedFirstBudgetAmount);
 
             BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount>(request);
             updatedSecondBudgetAmount.BudgetAmountId = secondBudgetAmount.BudgetAmountId;
@@ -377,7 +383,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
             updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+            _budgetAmountRepository.Update(updatedSecondBudgetAmount);
 
             //// 更新第一筆資料
             //_context.Entry(firstBudgetAmount).State = EntityState.Detached;// 將實體從上下文中分離
@@ -398,8 +404,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             //updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
             //updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
 
-            //_BudgetAmountRepository.Update(updatedFirstBudgetAmount);
-            //_BudgetAmountRepository.Update(updatedSecondBudgetAmount);
+            //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
+            //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
 
             return Ok("Records updated successfully");
             
@@ -428,8 +434,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                     return BadRequest("No request");
                 }
 
-                var BudgetAmount1 = _BudgetAmountRepository.GetById(request.BudgetAmountId);
-                var BudgetAmount2 = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                var BudgetAmount1 = _budgetAmountRepository.GetById(request.BudgetAmountId);
+                var BudgetAmount2 = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
                 if (BudgetAmount1 == null)
                 {
                     return NotFound("not exist");
@@ -442,19 +448,19 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 // 更新Status欄位
                 BudgetAmount1!.IsValid = false;
                 BudgetAmount2!.IsValid = false;
-                _BudgetAmountRepository.Update(BudgetAmount1);
-                _BudgetAmountRepository.Update(BudgetAmount2);
+                _budgetAmountRepository.Update(BudgetAmount1);
+                _budgetAmountRepository.Update(BudgetAmount2);
                 return Ok("success");
             }
-            //var BudgetAmount = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.ID1 == request.ID1).FirstOrDefault();
-            var BudgetAmount = _BudgetAmountRepository.GetById(request!.BudgetAmountId);
+            //var BudgetAmount = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.ID1 == request.ID1).FirstOrDefault();
+            var BudgetAmount = _budgetAmountRepository.GetById(request!.BudgetAmountId);
             if (BudgetAmount == null)
             {
                 return NotFound("not exist");
             }
             // 更新Status欄位
             BudgetAmount.IsValid = false;
-            _BudgetAmountRepository.Update(BudgetAmount);
+            _budgetAmountRepository.Update(BudgetAmount);
             return Ok("ok");
         }
         catch (Exception ex)
@@ -472,7 +478,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     {
         try
         {
-            var deletedRecords = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.CreatedYear == CreatedYear && BudgetAmount.IsValid == false)
+            var deletedRecords = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.CreatedYear == CreatedYear && BudgetAmount.IsValid == false)
                 .Include(BA => BA.Budget)
                 .ThenInclude(B => B!.Group)
                 .ToList();
@@ -511,8 +517,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         try
         {   if(request != null && request.Type != AmountType.Ordinary)
             {
-                var BudgetAmount1 = _BudgetAmountRepository.GetById(request.BudgetAmountId);
-                var BudgetAmount2 = _BudgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                var BudgetAmount1 = _budgetAmountRepository.GetById(request.BudgetAmountId);
+                var BudgetAmount2 = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
                 if (BudgetAmount1 == null)
                 {
                     return NotFound("not exist");
@@ -523,8 +529,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
                 }
                 BudgetAmount1!.IsValid = true;
                 BudgetAmount2!.IsValid = true;
-                _BudgetAmountRepository.Update(BudgetAmount1);
-                _BudgetAmountRepository.Update(BudgetAmount2);
+                _budgetAmountRepository.Update(BudgetAmount1);
+                _budgetAmountRepository.Update(BudgetAmount2);
                 return Ok("success");
             }
 
@@ -534,8 +540,8 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
             }
 
             //var entity =  _context.BudgetAmount.Find(request.ID1); // 因為find方法是透過主鍵去搜尋,ID1不是主鍵,找不到資料
-            var entity = _BudgetAmountRepository.GetById(request.BudgetAmountId);
-            //var entity = _BudgetAmountRepository.GetByCondition(e => e.BudgetAmountId == request.BudgetAmountId).FirstOrDefault();
+            var entity = _budgetAmountRepository.GetById(request.BudgetAmountId);
+            //var entity = _budgetAmountRepository.GetByCondition(e => e.BudgetAmountId == request.BudgetAmountId).FirstOrDefault();
 
             if (entity == null)
             {
@@ -544,7 +550,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
 
             //entity.Status = "O";
             entity.IsValid = true;
-            _BudgetAmountRepository.Update(entity);
+            _budgetAmountRepository.Update(entity);
 
             return Ok("IsValid updated to 'O'.");
         }
@@ -567,7 +573,7 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
         condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
         try
         {
-            var results = _BudgetAmountRepository.GetByCondition(condition)
+            var results = _budgetAmountRepository.GetByCondition(condition)
             .Include(BudgetAmount => BudgetAmount.Budget)
             .ThenInclude(Budget => Budget!.Group)
             .FirstOrDefault();
@@ -588,48 +594,48 @@ public class BudgetAmountController(IGenericRepository<BudgetAmount> BudgetAmoun
     public async Task<IActionResult> ExportToExcel([FromBody] BudgetAmountExcelViewModel request)
     {
         //var data = GetGroupData(request.Year, request.GroupId);
-        var dataDetail = GetDetailData(request.BudgetId);
-        IWorkbook workbook = new XSSFWorkbook();
-        ISheet sheet = workbook.CreateSheet("Sheet1");
+        //var dataDetail = GetDetailData(request.BudgetId);
 
-        // 設定樣式
-        ICellStyle cellStyle = ExcelStyleHelper.CreateCellStyle(workbook);
-        ICellStyle headerStyle = ExcelStyleHelper.CreateHeaderStyle(workbook);
-        ICellStyle yellowCellStyle = ExcelStyleHelper.CreateYellowCellStyle(workbook);
-
-        // 表格標題
-        IRow titleRow = sheet.CreateRow(0);
-        titleRow.CreateCell(0).SetCellValue("交通部民用航空局");
-        titleRow.GetCell(0).CellStyle = headerStyle;
-        sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(0, 0, 0, 11));
-
-        IRow subTitleRow = sheet.CreateRow(1);
-        subTitleRow.CreateCell(0).SetCellValue("臺北國際航空站");
-        subTitleRow.GetCell(0).CellStyle = headerStyle;
-        sheet.AddMergedRegion(new CellRangeAddress(1, 1, 0, 11));
-
-        IRow yearRow = sheet.CreateRow(2);
-        ICell yearCell = yearRow.CreateCell(0);
-        yearCell.SetCellValue($"{request.Year}年度預算控制表");
-        yearCell.CellStyle = headerStyle;
-        sheet.AddMergedRegion(new CellRangeAddress(2, 2, 0, 11));
-
-        IRow row = sheet.CreateRow(3);
-        row.CreateCell(0).SetCellValue("組室別：");
-        sheet.AddMergedRegion(new CellRangeAddress(3, 3, 0, 1));
-        row.GetCell(0).CellStyle = cellStyle;
-        row.CreateCell(2).SetCellValue(request.GroupName);
-        row.GetCell(2).CellStyle = cellStyle;
         //sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 2, 2));
 
         //FillGroupData(sheet, request, cellStyle, yellowCellStyle);
 
-        using (var stream = new MemoryStream())
-        {
-            workbook.Write(stream);
-            var content = stream.ToArray();
+        //using (var stream = new MemoryStream())
+        //{
+        //    workbook.Write(stream);
+        //    var content = stream.ToArray();
 
-            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        //    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        //}
+
+        // Expression<Func<BudgetAmount, bool>> condition = item => true;
+        // condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == request.BudgetId && BudgetAmount.Status == "O");
+        // condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
+        // var results = _budgetAmountRepository.GetByCondition(condition)
+        //.Include(BudgetAmount => BudgetAmount.Budget)
+        //.AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
+        //.Select(BudgetAmount =>
+        //{
+        //    // 移除需要的欄位中的多餘空格
+        //    BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
+        //    return BudgetAmount;
+        //})
+        //.ToList();
+        try
+        {
+            var result = GetDetailData(request.BudgetId);
+
+            if (result is OkObjectResult okResult && okResult.Value is List<BudgetAmount> dataDetail) // IActionResult返回型別確認是否為List<BudgetAmount>
+            {
+                var excelFile = _budgetAmountExcelExportService.ExportBudgetAmountToExcel(request, dataDetail);
+                return File(excelFile, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+            }
+            else
+            { return BadRequest();  }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
         }
     }
 
