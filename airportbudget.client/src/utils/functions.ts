@@ -31,22 +31,6 @@ export const formatDate = (dateString: any): string => {
     return `${year}/${month}/${day}`;
 };
 
-export const handleExcelClick = async (budget: string) => {
-    try {
-        const response = await axios.get(`/api/MoneyDb/ExportToExcel?budget=${budget}`, {
-            responseType: 'blob'
-        });
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${budget}.xlsx`);
-        document.body.appendChild(link);
-        link.click();
-    } catch (error) {
-        console.error(error);
-    }
-};
-
 
 // 數字格式化
 //export const formatNumber = (value: number): string  => {

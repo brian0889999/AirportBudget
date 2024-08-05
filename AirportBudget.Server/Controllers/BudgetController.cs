@@ -56,6 +56,48 @@ public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapp
         }
     }
 
+    [HttpGet("GetSubject6")]
+    public IActionResult GetSubject6(int GroupId, int Year)
+    {
+        try
+        {
+            Expression<Func<Budget, bool>> condition = item => true;
+            condition = condition.And(b => b.GroupId == GroupId && b.CreatedYear == Year);
+
+            // 使用 LINQ 查詢篩選條件
+            var subject6s = _budgetRepository.GetByCondition(condition)
+                                            .Select(b => b.Subject6)  // 只選取 Subject6 欄位
+                                            .Distinct()               // 去重複
+                                            .ToList();                // 轉換為 List
+
+            return Ok(subject6s);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+
+    [HttpGet("BudgetIdForExcel")]
+    public IActionResult GetBudgetId(int GroupId, int Year, string Subject6)
+    {
+        try
+        {
+            Expression<Func<Budget, bool>> condition = item => true;
+            condition = condition.And(b => b.GroupId == GroupId && b.CreatedYear == Year && b.Subject6 == Subject6);
+
+            var budgetId = _budgetRepository.GetByCondition(condition)
+                                            .Select(b => b.BudgetId)  
+                                            .ToList();               
+
+            return Ok(budgetId);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
 }
 
 

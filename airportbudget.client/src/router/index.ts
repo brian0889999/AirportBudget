@@ -38,6 +38,11 @@ const routes: Array<RouteRecordRaw> = [
                 name: 'DeletedRecords',
                 component: () => import(/*webpackChunkName "DeletedRecords" */ '@/views/main/DeletedRecords.vue'),
                 meta: { title: '復原刪除' },
+            }, {
+                path: 'BudgetExecutionReports',
+                name: 'BudgetExecutionReports',
+                component: () => import(/*webpackChunkName "DeletedRecords" */ '@/views/main/BudgetExecutionReports.vue'),
+                meta: { title: 'Excel執行情形表' },
             },
             //{
             //    path: 'BalanceManagement',

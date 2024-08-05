@@ -38,7 +38,6 @@
 
   <ItemGroup>
     <Folder Include="Datas\" />
-    <Folder Include="DTOs\" />
   </ItemGroup>
 
 </Project>

@@ -36,16 +36,22 @@ namespace AirportBudget.Server.Utilities
             sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 0, 1)); // 合併A、B欄
             headerRow.CreateCell(2).SetCellValue($"{request.GroupName}");
 
+            // 創建一個啟用換行的單元格樣式
+            ICellStyle wrapTextStyle = workbook.CreateCellStyle();
+            wrapTextStyle.WrapText = true;
+
             // 設定5~15列的A、B欄合併
             sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(4, 14, 0, 1)); // 合併A、B欄
             string[] rowTitles = ["6級(科目)", "7級(子目)", "8級(細目)", "年度預算額度(1)", "併決算數額(2)", "一般動支數額(3)", "勻出數額(4)", "(不含勻入)\" + \" \\n\" + \"一般預算餘額(5)", "(含勻入)\" + \" \\n\" + \"可用預算餘額(10)", "Title 9", "Title 10"];
-
             for (int i = 4; i < 15; i++)
             {
                 var row = sheet.CreateRow(i);
                 if (i == 4)
                 {
-                    row.CreateCell(0).SetCellValue("預" + " \n" + "算" + " \n" + "科" + " \n" + "目" + " \n" + "/" + " \n" + "金" + " \n" + "額");
+                    //row.CreateCell(0).SetCellValue("預" + " \n" + "算" + " \n" + "科" + " \n" + "目" + " \n" + "/" + " \n" + "金" + " \n" + "額");
+                    var cell = row.CreateCell(0);
+                    cell.SetCellValue("預\n算\n科\n目\n/\n金\n額");
+                    cell.CellStyle = wrapTextStyle; // 設置單元格樣式
                 }
                 row.CreateCell(2).SetCellValue(rowTitles[i - 4]);
             }
@@ -55,7 +61,10 @@ namespace AirportBudget.Server.Utilities
             for (int i = 4; i < 8; i++)
             {
                 var row = sheet.GetRow(i);
-                row.CreateCell(6).SetCellValue("用" + " \n" + "途" + " \n" + "說" + " \n" + "明");
+                //row.CreateCell(6).SetCellValue("用" + " \n" + "途" + " \n" + "說" + " \n" + "明");
+                var cell = row.CreateCell(6);
+                cell.SetCellValue("用\n途\n說\n明");
+                cell.CellStyle = wrapTextStyle; // 設置單元格樣式
             }
 
             // 設置9~11列的H欄，不合併，放三個標題
@@ -237,6 +246,14 @@ namespace AirportBudget.Server.Utilities
                 row.CreateCell(12).SetCellValue(budgetAmount.ExTax ? "✓" : string.Empty);
                 row.CreateCell(13).SetCellValue(budgetAmount.Reconciled ? "✓" : string.Empty);
             }
+
+            //欄位大小
+            sheet.SetColumnWidth(0, 60 * 60);
+            sheet.SetColumnWidth(1, 60 * 60);
+            sheet.SetColumnWidth(2, 100 * 100);
+            sheet.SetColumnWidth(7, 100 * 100);
+            sheet.SetColumnWidth(8, 60 * 60);
+            sheet.SetColumnWidth(11, 80 * 80);
 
             using (var memoryStream = new MemoryStream())
             {

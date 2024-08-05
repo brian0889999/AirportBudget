@@ -66,6 +66,8 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<DESEncryptionUtility>();
 builder.Services.AddScoped<BudgetAmountExcelExportService>();
+builder.Services.AddScoped<ExportBudgetExcelService>();
+builder.Services.AddScoped<ExportFundExcelService>();
 
 builder.Services.AddDbContext<AirportBudgetDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("AirportBudget")));

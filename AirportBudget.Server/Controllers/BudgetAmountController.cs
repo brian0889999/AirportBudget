@@ -36,13 +36,17 @@ public class BudgetAmountController(
     IGenericRepository<Budget> budgetRepository,
     IMapper mapper,
     AirportBudgetDbContext context,
-    BudgetAmountExcelExportService budgetAmountExcelExportService) : ControllerBase
+    BudgetAmountExcelExportService budgetAmountExcelExportService,
+    ExportBudgetExcelService exportBudgetExcelService,
+    ExportFundExcelService exportFundExcelService) : ControllerBase
 {
     private readonly IGenericRepository<BudgetAmount> _budgetAmountRepository = budgetAmountRepository;
     private readonly IGenericRepository<Budget> _budgetRepository = budgetRepository;
     private readonly IMapper _mapper = mapper;
     private readonly AirportBudgetDbContext _context = context;
     private readonly BudgetAmountExcelExportService _budgetAmountExcelExportService = budgetAmountExcelExportService;
+    private readonly ExportBudgetExcelService _exportBudgetExcelService = exportBudgetExcelService;
+    private readonly ExportFundExcelService _exportFundExcelService = exportFundExcelService;
 
     /// <summary>
     /// Groups的預算資料查詢
@@ -639,6 +643,36 @@ public class BudgetAmountController(
         }
     }
 
+
+    [HttpGet("ExportBudgetExcel")]
+    public IActionResult ExportBudgetExcel([FromQuery] ExportBudgetRequestViewModel request)
+    {
+        try
+        {
+            var excelFile = _exportBudgetExcelService.ExportBudgetToExcel(request);
+            return File(excelFile, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+    [HttpGet("ExportFundExcel")]
+    public IActionResult ExportFundExcel([FromQuery] ExportFundRequestViewModel request)
+    {
+        try
+        {
+            var excelFile = _exportFundExcelService.ExportFundToExcel(request);
+            return File(excelFile, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+
     //private void FillGroupData(ISheet sheet, BudgetAmountExcelViewModel data, ICellStyle cellStyle, ICellStyle yellowCellStyle)
     //{
     //    IRow row = sheet.CreateRow(3);
@@ -676,8 +710,59 @@ public class BudgetAmountController(
     //    }
     //}
 
+    /// <summary>
+    /// Groups的預算資料查詢
+    /// </summary>
+    /// <returns>查詢結果</returns>
+    [HttpGet("BudgetAmountForExcel")]
+    public IActionResult BudgetAmountForExcel(int BudgetId)
+    {
+        Expression<Func<BudgetAmount, bool>> condition = item => true;
+        condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
+        condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
+        try
+        {
+            var results = _budgetAmountRepository.GetByCondition(condition)
+           .Include(b => b.Budget) // 確保包含 Budget 表資料
+           .Where(b => b.BudgetId == BudgetId)
+           .GroupBy(b => new
+           {
+               b.Budget!.Subject6,
+               b.Budget!.Subject7,
+               b.Budget!.Subject8,
+               b.Budget!.AnnualBudgetAmount,
+               b.Budget!.FinalBudgetAmount
+           })
+           .Select(g => new
+           {
+               g.Key.Subject6,
+               g.Key.Subject7,
+               g.Key.Subject8,
+               g.Key.AnnualBudgetAmount,
+               g.Key.FinalBudgetAmount,
+               General = g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0),
+               Out = g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0),
+               UseBudget = (g.Key.AnnualBudgetAmount -
+                               g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0) -
+                               g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0)) + g.Key.FinalBudgetAmount,
+               In = g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0),
+               InActual = g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0),
+               InBalance = g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0) - g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0),
+               SubjectActual = g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0) + g.Sum(b => b.Type == AmountType.Ordinary ? b.PaymentAmount : 0),
+               InUseBudget = g.Key.AnnualBudgetAmount - g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0) - g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0) +
+                                 g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0) - g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0),
+               END = g.Key.AnnualBudgetAmount + g.Key.FinalBudgetAmount - g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0) - g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0) + g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0)
+           })
+           .ToList();
 
-
+            //List<BudgetAmountViewModel> budgetAmountViewModels = _mapper.Map<List<BudgetAmountViewModel>>(results);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
 
 }
 

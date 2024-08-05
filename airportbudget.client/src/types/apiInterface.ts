@@ -137,6 +137,17 @@ export interface GetIdDataViewModel {
     CreatedYear: number,
 }
 
+export interface ExportFundRequestViewModel {
+    Year: number,
+    StartMonth: number, 
+    EndMonth: number,
+}
+export interface ExportBudgetRequestViewModel {
+    GroupId: number,
+    Year: number,
+    StartMonth: number,
+    EndMonth: number,
+}
 //export interface SelectedBudgetModel {
 //    BudgetName?: string,
 //    GroupName?: string,

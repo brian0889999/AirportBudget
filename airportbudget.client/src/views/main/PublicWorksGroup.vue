@@ -583,9 +583,9 @@
         const sortedItems = Object.values(groupedItems).map(group => {
             const firstItem = group[0];
             const general = sumByCondition(group, 1, 'RequestAmount');
-            const out = sumByCondition(group, 3, 'RequestAmount');
-            const inValue = sumByCondition(group, 2, 'RequestAmount');
-            const inActual = sumByCondition(group, 2, 'PaymentAmount');
+            const out = sumByCondition(group, 2, 'RequestAmount');
+            const inValue = sumByCondition(group, 3, 'RequestAmount');
+            const inActual = sumByCondition(group, 3, 'PaymentAmount');
             const subjectActual = inActual + sumByCondition(group, 1, 'PaymentAmount');
 
             // 將 Final 欄位從字串轉換成數字
