@@ -40,10 +40,10 @@ namespace AirportBudget.Server.Utilities
             IWorkbook workbook = new XSSFWorkbook();
             ISheet sheet = workbook.CreateSheet("Sheet1");
             
-            sheet.DefaultRowHeight = 30 * 30;
+            sheet.DefaultRowHeight = 40 * 30;
 
             // 定義每一欄的寬度
-            int[] columnWidths = { 20, 20, 20, 30, 25, 20, 20, 20, 20, 45, 20, 35, 35, 25 };
+            int[] columnWidths = { 30, 30, 30, 30, 30, 30, 30, 30, 45, 30, 30, 35, 45, 30 };
 
             // 設定每一欄的寬度
             for (int i = 0; i < columnWidths.Length; i++)
@@ -57,30 +57,101 @@ namespace AirportBudget.Server.Utilities
             // 將日期格式化為 "YYYY年MM月DD日" 的格式
             string formattedDate = $"{request.Year}年{request.EndMonth}月{lastDayOfMonth.Day}日";
 
+            // 創建文字置中和框線的樣式 (16號字體)
+            ICellStyle centeredBorderStyle16 = workbook.CreateCellStyle();
+            centeredBorderStyle16.Alignment = HorizontalAlignment.Center;
+            centeredBorderStyle16.VerticalAlignment = VerticalAlignment.Center;
+            centeredBorderStyle16.BorderBottom = BorderStyle.Thin;
+            centeredBorderStyle16.BorderTop = BorderStyle.Thin;
+            centeredBorderStyle16.BorderLeft = BorderStyle.Thin;
+            centeredBorderStyle16.BorderRight = BorderStyle.Thin;
+            IFont font16 = workbook.CreateFont();
+            font16.FontHeightInPoints = 16;
+            font16.FontName = "Microsoft JhengHei";
+            centeredBorderStyle16.SetFont(font16);
+
+            // 創建第四列的文字大小樣式 (14號字體)
+            ICellStyle centeredBorderStyle12 = workbook.CreateCellStyle();
+            centeredBorderStyle12.Alignment = HorizontalAlignment.Center;
+            centeredBorderStyle12.VerticalAlignment = VerticalAlignment.Center;
+            centeredBorderStyle12.BorderBottom = BorderStyle.Thin;
+            centeredBorderStyle12.BorderTop = BorderStyle.Thin;
+            centeredBorderStyle12.BorderLeft = BorderStyle.Thin;
+            centeredBorderStyle12.BorderRight = BorderStyle.Thin;
+            IFont font12 = workbook.CreateFont();
+            font12.FontHeightInPoints = 14;
+            //font12.FontHeightInPoints = 12;
+            font12.FontName = "PMingLiU";
+            centeredBorderStyle12.SetFont(font12);
+
+            // 創建合計和總計的標題樣式（靠右且置中，16號字體）
+            ICellStyle rightAlignedCenteredStyle = workbook.CreateCellStyle();
+            rightAlignedCenteredStyle.Alignment = HorizontalAlignment.Right;
+            rightAlignedCenteredStyle.VerticalAlignment = VerticalAlignment.Center;
+            rightAlignedCenteredStyle.BorderBottom = BorderStyle.Thin;
+            rightAlignedCenteredStyle.BorderTop = BorderStyle.Thin;
+            rightAlignedCenteredStyle.BorderLeft = BorderStyle.Thin;
+            rightAlignedCenteredStyle.BorderRight = BorderStyle.Thin;
+            rightAlignedCenteredStyle.SetFont(font16);
+
+            // 創建數字欄位的樣式（靠右對齊並置中，16號字體）
+            ICellStyle rightAlignedNumberStyle = workbook.CreateCellStyle();
+            rightAlignedNumberStyle.Alignment = HorizontalAlignment.Right;
+            rightAlignedNumberStyle.VerticalAlignment = VerticalAlignment.Center;
+            rightAlignedNumberStyle.BorderBottom = BorderStyle.Thin;
+            rightAlignedNumberStyle.BorderTop = BorderStyle.Thin;
+            rightAlignedNumberStyle.BorderLeft = BorderStyle.Thin;
+            rightAlignedNumberStyle.BorderRight = BorderStyle.Thin;
+            rightAlignedNumberStyle.DataFormat = workbook.CreateDataFormat().GetFormat("#,##0"); // 設定數字格式
+            rightAlignedNumberStyle.SetFont(font16);
+
+            // 創建自動換行的樣式（16號字體）
+            ICellStyle wrappedTextStyle = workbook.CreateCellStyle();
+            wrappedTextStyle.Alignment = HorizontalAlignment.Center;
+            wrappedTextStyle.VerticalAlignment = VerticalAlignment.Center;
+            wrappedTextStyle.BorderBottom = BorderStyle.Thin;
+            wrappedTextStyle.BorderTop = BorderStyle.Thin;
+            wrappedTextStyle.BorderLeft = BorderStyle.Thin;
+            wrappedTextStyle.BorderRight = BorderStyle.Thin;
+            wrappedTextStyle.WrapText = true; // 啟用自動換行
+            wrappedTextStyle.SetFont(font16);
+
             // 設定標題
             var titles = new[]
             {
             "預算控制執行情形表", $"{formattedDate}止"
-            };
+        };
 
             for (int i = 0; i < titles.Length; i++)
             {
                 var row = sheet.CreateRow(i);
-                row.Height = 30 * 20; // 設定行高
-                var cell = row.CreateCell(0);
-                cell.SetCellValue(titles[i]);
+                row.Height = 40 * 30; // 設定行高
+                                      // 合併儲存格範圍
                 sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 0, 11)); // 合併A~L欄
+
+                var firstCell = row.CreateCell(0);
+                firstCell.SetCellValue(titles[i]);
+                firstCell.CellStyle = centeredBorderStyle16;
+
+                // 為合併範圍內的儲存格設置框線樣式
+                for (int col = 1; col <= 11; col++)
+                {
+                    var mergedCell = row.CreateCell(col);
+                    mergedCell.CellStyle = centeredBorderStyle16;
+                }
             }
+
 
             // 在第三列的M欄位放置標題
             var thirdRow = sheet.CreateRow(2);
-            thirdRow.Height = 30 * 20; // 設定行高
+            thirdRow.Height = 40 * 30; // 設定行高
             var titleCell = thirdRow.CreateCell(12); // M欄位對應的索引是12
             titleCell.SetCellValue("單位 : 元");
+            titleCell.CellStyle = centeredBorderStyle16;
 
             // 在第四列A~N欄位放置標題
             var fourthRow = sheet.CreateRow(3);
-            fourthRow.Height = 30 * 20; // 設定行高
+            fourthRow.Height = 40 * 30; // 設定行高
             var columnTitles = new[]
             {
         "組室別", "6級(科目)", "7級(子目)", "8級(細目)", "年度預算額度(1)", "併決算數(2)", "一般動支數(3)", "勻出數(4)", "可用預算餘額 \r\n(5)=(1)+(2)-(3)-(4)", "勻入數(6)", "勻入實付數(7)", "勻入數餘額 \r\n(8)=(6)-(7)", "可用預算餘額 \r\n(含勻入) \r\n(10) = (5) + (8)", "本科目實付數(9)"
@@ -90,6 +161,7 @@ namespace AirportBudget.Server.Utilities
             {
                 var cell = fourthRow.CreateCell(i);
                 cell.SetCellValue(columnTitles[i]);
+                cell.CellStyle = centeredBorderStyle12;
             }
 
             // 獲取所有的群組資料
@@ -112,6 +184,9 @@ namespace AirportBudget.Server.Utilities
             int grandTotalInUseBudget = 0;
             int grandTotalSubjectActual = 0;
 
+            // 收集所有資料進行排序
+            var allData = new List<ExportBudgetAmountDTO>();
+
             foreach (var subject6 in subject6s)
             {
                 // 根據 Subject6 獲取所有 BudgetId
@@ -133,61 +208,37 @@ namespace AirportBudget.Server.Utilities
                 {
                     // 根據 BudgetId 獲取 BudgetAmount 資料
                     var budgetAmountData = GetBudgetAmountData(budgetId, request.Year);
-                    // 在這裡進行排序
-                    //var sortedData = budgetAmountData
-                    //    .OrderBy(data => int.Parse(data.Subject7.Substring(0, 4)))
-                    //    .ToList();
-                    foreach (var data in budgetAmountData)
-                    {
-                        var row = sheet.CreateRow(currentRow++);
-                        row.Height = 30 * 20; // 設定行高
+                    allData.AddRange(budgetAmountData);
 
-                        // 找出對應的 GroupName
-                        var group = groups.FirstOrDefault(g => g.GroupId == request.GroupId);
-                        var groupName = group != null ? group.GroupName : "未知";
-
-                        row.CreateCell(0).SetCellValue(groupName);
-                        row.CreateCell(1).SetCellValue(data.Subject6);
-                        row.CreateCell(2).SetCellValue(data.Subject7);
-                        row.CreateCell(3).SetCellValue(data.Subject8);
-                        row.CreateCell(4).SetCellValue(data.AnnualBudgetAmount.ToString("N0"));
-                        row.CreateCell(5).SetCellValue(data.FinalBudgetAmount.ToString("N0"));
-                        row.CreateCell(6).SetCellValue(data.General.ToString("N0"));
-                        row.CreateCell(7).SetCellValue(data.Out.ToString("N0"));
-                        row.CreateCell(8).SetCellValue(data.UseBudget.ToString("N0"));
-                        row.CreateCell(9).SetCellValue(data.In.ToString("N0"));
-                        row.CreateCell(10).SetCellValue(data.InActual.ToString("N0"));
-                        row.CreateCell(11).SetCellValue(data.InBalance.ToString("N0"));
-                        row.CreateCell(12).SetCellValue(data.InUseBudget.ToString("N0"));
-                        row.CreateCell(13).SetCellValue(data.SubjectActual.ToString("N0"));
-
-                        // 累計當前 Subject6 的所有欄位
-                        totalAnnualBudgetAmount += data.AnnualBudgetAmount;
-                        totalFinalBudgetAmount += data.FinalBudgetAmount;
-                        totalGeneral += data.General;
-                        totalOut += data.Out;
-                        totalUseBudget += data.UseBudget;
-                        totalIn += data.In;
-                        totalInActual += data.InActual;
-                        totalInBalance += data.InBalance;
-                        totalInUseBudget += data.InUseBudget;
-                        totalSubjectActual += data.SubjectActual;
-                    }
+                    // 累計當前 Subject6 的所有欄位
+                    totalAnnualBudgetAmount += budgetAmountData.Sum(data => data.AnnualBudgetAmount);
+                    totalFinalBudgetAmount += budgetAmountData.Sum(data => data.FinalBudgetAmount);
+                    totalGeneral += budgetAmountData.Sum(data => data.General);
+                    totalOut += budgetAmountData.Sum(data => data.Out);
+                    totalUseBudget += budgetAmountData.Sum(data => data.UseBudget);
+                    totalIn += budgetAmountData.Sum(data => data.In);
+                    totalInActual += budgetAmountData.Sum(data => data.InActual);
+                    totalInBalance += budgetAmountData.Sum(data => data.InBalance);
+                    totalInUseBudget += budgetAmountData.Sum(data => data.InUseBudget);
+                    totalSubjectActual += budgetAmountData.Sum(data => data.SubjectActual);
                 }
-                // 在每個 Subject6 資料結束後，添加一行顯示加總結果
-                var totalRow = sheet.CreateRow(currentRow++);
-                totalRow.Height = 30 * 20; // 設定行高
-                totalRow.CreateCell(3).SetCellValue("合計"); // D 欄位為標題
-                totalRow.CreateCell(4).SetCellValue(totalAnnualBudgetAmount.ToString("N0")); // E 欄位為加總值
-                totalRow.CreateCell(5).SetCellValue(totalFinalBudgetAmount.ToString("N0"));
-                totalRow.CreateCell(6).SetCellValue(totalGeneral.ToString("N0"));
-                totalRow.CreateCell(7).SetCellValue(totalOut.ToString("N0"));
-                totalRow.CreateCell(8).SetCellValue(totalUseBudget.ToString("N0"));
-                totalRow.CreateCell(9).SetCellValue(totalIn.ToString("N0"));
-                totalRow.CreateCell(10).SetCellValue(totalInActual.ToString("N0"));
-                totalRow.CreateCell(11).SetCellValue(totalInBalance.ToString("N0"));
-                totalRow.CreateCell(12).SetCellValue(totalInUseBudget.ToString("N0"));
-                totalRow.CreateCell(13).SetCellValue(totalSubjectActual.ToString("N0"));
+
+                //// 添加每個 Subject6 的合計行到 allData
+                //allData.Add(new ExportBudgetAmountDTO
+                //{
+                //    Subject6 = subject6,
+                //    Subject7 = "合計",
+                //    AnnualBudgetAmount = totalAnnualBudgetAmount,
+                //    FinalBudgetAmount = totalFinalBudgetAmount,
+                //    General = totalGeneral,
+                //    Out = totalOut,
+                //    UseBudget = totalUseBudget,
+                //    In = totalIn,
+                //    InActual = totalInActual,
+                //    InBalance = totalInBalance,
+                //    InUseBudget = totalInUseBudget,
+                //    SubjectActual = totalSubjectActual
+                //});
 
                 // 累計到總計
                 grandTotalAnnualBudgetAmount += totalAnnualBudgetAmount;
@@ -202,20 +253,166 @@ namespace AirportBudget.Server.Utilities
                 grandTotalSubjectActual += totalSubjectActual;
             }
 
+            // 排序所有收集到的資料
+            var sortedData = allData
+                .OrderBy(data =>
+                {
+                    var subStr = data.Subject7.Substring(0, Math.Min(4, data.Subject7.Length));
+                    return int.TryParse(subStr, out int num) ? num : int.MaxValue;
+                })
+                .ThenBy(data =>
+                {
+                    if (data.Subject8 != null)
+                    {
+                        var subStr = data.Subject8.Substring(0, Math.Min(6, data.Subject8.Length));
+                        return int.TryParse(subStr, out int num) ? num : int.MaxValue;
+                    }
+                    return int.MaxValue;
+                })
+                .ToList();
+
+            // 將排序後的資料填充到 Excel 中
+            string currentSubject6 = null;
+            foreach (var data in sortedData)
+            {
+                // 檢查是否需要插入合計行
+                if (currentSubject6 != null && currentSubject6 != data.Subject6)
+                {
+                    // 插入合計行
+                    var totalRow = sheet.CreateRow(currentRow++);
+                    totalRow.Height = 40 * 30; // 設定行高
+                    var totalCells = new ICell[14];
+                    for (int i = 0; i < totalCells.Length; i++)
+                    {
+                        totalCells[i] = totalRow.CreateCell(i);
+                        totalCells[i].CellStyle = rightAlignedNumberStyle; // 為所有合計儲存格添加邊框樣式
+                    }
+                    totalCells[3].SetCellValue("合計"); // D 欄位為標題
+                    totalCells[4].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.AnnualBudgetAmount));
+                    totalCells[5].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.FinalBudgetAmount));
+                    totalCells[6].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.General));
+                    totalCells[7].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.Out));
+                    totalCells[8].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.UseBudget));
+                    totalCells[9].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.In));
+                    totalCells[10].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InActual));
+                    totalCells[11].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InBalance));
+                    totalCells[12].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InUseBudget));
+                    totalCells[13].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.SubjectActual));
+                }
+
+                // 更新當前 Subject6
+                currentSubject6 = data.Subject6;
+
+                // 填充資料
+                var row = sheet.CreateRow(currentRow++);
+                row.Height = 40 * 30; // 設定行高
+
+                // 找出對應的 GroupName
+                var group = groups.FirstOrDefault(g => g.GroupId == request.GroupId);
+                var groupName = group != null ? group.GroupName : "未知";
+
+                // 建立儲存格的陣列
+                var cells = new ICell[14];
+                for (int i = 0; i < cells.Length; i++)
+                {
+                    cells[i] = row.CreateCell(i);
+                }
+
+                // 定義要插入的值
+                var values = new object[]
+                {
+            groupName,
+            data.Subject6,
+            data.Subject7,
+            data.Subject8 ?? "", // 確保不為 null
+            data.AnnualBudgetAmount,
+            data.FinalBudgetAmount,
+            data.General,
+            data.Out,
+            data.UseBudget,
+            data.In,
+            data.InActual,
+            data.InBalance,
+            data.InUseBudget,
+            data.SubjectActual
+                };
+
+                // 將值設置到儲存格中，並根據條件設置樣式
+                for (int i = 0; i < cells.Length; i++)
+                {
+                    if (values[i] is int)
+                    {
+                        cells[i].SetCellValue(Convert.ToDouble(values[i]));
+                        if (i >= 4) // E~N欄位
+                        {
+                            cells[i].CellStyle = rightAlignedNumberStyle;
+                        }
+                    }
+                    else
+                    {
+                        cells[i].SetCellValue(values[i].ToString());
+                        if (i < 4) // A~D欄位
+                        {
+                            if (i == 2 || i == 3) // 針對 Subject7 和 Subject8 欄位
+                            {
+                                cells[i].CellStyle = wrappedTextStyle;
+                            }
+                            else
+                            {
+                                cells[i].CellStyle = centeredBorderStyle16;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 添加最後一組的合計行
+            if (currentSubject6 != null)
+            {
+                var totalRow = sheet.CreateRow(currentRow++);
+                totalRow.Height = 40 * 30; // 設定行高
+                var totalCells = new ICell[14];
+                for (int i = 0; i < totalCells.Length; i++)
+                {
+                    totalCells[i] = totalRow.CreateCell(i);
+                    totalCells[i].CellStyle = rightAlignedNumberStyle; // 為所有合計儲存格添加邊框樣式
+                }
+                totalCells[3].SetCellValue("合計"); // D 欄位為標題
+                totalCells[4].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.AnnualBudgetAmount));
+                totalCells[5].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.FinalBudgetAmount));
+                totalCells[6].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.General));
+                totalCells[7].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.Out));
+                totalCells[8].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.UseBudget));
+                totalCells[9].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.In));
+                totalCells[10].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InActual));
+                totalCells[11].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InBalance));
+                totalCells[12].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.InUseBudget));
+                totalCells[13].SetCellValue(allData.Where(d => d.Subject6 == currentSubject6).Sum(d => d.SubjectActual));
+            }
+
+
+
             // 添加最下面的總計行
             var grandTotalRow = sheet.CreateRow(currentRow++);
-            grandTotalRow.Height = 30 * 20; // 設定行高
-            grandTotalRow.CreateCell(3).SetCellValue("總計"); // D 欄位為標題
-            grandTotalRow.CreateCell(4).SetCellValue(grandTotalAnnualBudgetAmount.ToString("N0"));
-            grandTotalRow.CreateCell(5).SetCellValue(grandTotalFinalBudgetAmount.ToString("N0"));
-            grandTotalRow.CreateCell(6).SetCellValue(grandTotalGeneral.ToString("N0"));
-            grandTotalRow.CreateCell(7).SetCellValue(grandTotalOut.ToString("N0"));
-            grandTotalRow.CreateCell(8).SetCellValue(grandTotalUseBudget.ToString("N0"));
-            grandTotalRow.CreateCell(9).SetCellValue(grandTotalIn.ToString("N0"));
-            grandTotalRow.CreateCell(10).SetCellValue(grandTotalInActual.ToString("N0"));
-            grandTotalRow.CreateCell(11).SetCellValue(grandTotalInBalance.ToString("N0"));
-            grandTotalRow.CreateCell(12).SetCellValue(grandTotalInUseBudget.ToString("N0"));
-            grandTotalRow.CreateCell(13).SetCellValue(grandTotalSubjectActual.ToString("N0"));
+            grandTotalRow.Height = 40 * 30; // 設定行高
+            var grandTotalCells = new ICell[14];
+            for (int i = 0; i < grandTotalCells.Length; i++)
+            {
+                grandTotalCells[i] = grandTotalRow.CreateCell(i);
+                grandTotalCells[i].CellStyle = rightAlignedNumberStyle; // 為所有總計儲存格添加邊框樣式
+            }
+            grandTotalCells[3].SetCellValue("總計"); // D 欄位為標題
+            grandTotalCells[3].CellStyle = rightAlignedCenteredStyle; // 總計標題的樣式
+            grandTotalCells[4].SetCellValue(grandTotalAnnualBudgetAmount);
+            grandTotalCells[5].SetCellValue(grandTotalFinalBudgetAmount);
+            grandTotalCells[6].SetCellValue(grandTotalGeneral);
+            grandTotalCells[7].SetCellValue(grandTotalOut);
+            grandTotalCells[8].SetCellValue(grandTotalUseBudget);
+            grandTotalCells[9].SetCellValue(grandTotalIn);
+            grandTotalCells[10].SetCellValue(grandTotalInActual);
+            grandTotalCells[11].SetCellValue(grandTotalInBalance);
+            grandTotalCells[12].SetCellValue(grandTotalInUseBudget);
+            grandTotalCells[13].SetCellValue(grandTotalSubjectActual);
 
 
             using (var memoryStream = new MemoryStream())

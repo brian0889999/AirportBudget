@@ -33,7 +33,7 @@
                 </v-card>
             </v-col>
             <v-col cols="12">
-                <v-form ref="">
+                <v-form ref="exportBudgetExcelRef">
                     <v-card>
                         <v-card-title>
                             <h2 class="headline">預算控制執行情形表</h2>
@@ -115,13 +115,13 @@
         try {
             const url = '/api/Group/SelectedOption';
             const response: ApiResponse<SelectedOption[]> = await get<SelectedOption[]>(url);
-            console.log(1);
+            //console.log(1);
             if (response.StatusCode == 200) {
-                console.log(2);
+                //console.log(2);
                 const data = response.Data;
                 groups.value = data ?? [];
                 groups.value.unshift({ text: '請選擇', value: 0 });
-                console.log(groups.value);
+                //console.log(groups.value);
             }
         } catch (error) {
             console.error('Error downloading the file', error);

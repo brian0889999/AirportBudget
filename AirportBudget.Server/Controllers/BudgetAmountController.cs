@@ -114,6 +114,7 @@ public class BudgetAmountController(
             var results = _budgetAmountRepository.GetByCondition(condition)
            .Include(BudgetAmount => BudgetAmount.Budget)
            .AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
+           .OrderByDescending(BudgetAmount => BudgetAmount.RequestDate)
            .Select(BudgetAmount =>
            {
                // 移除需要的欄位中的多餘空格
@@ -597,13 +598,6 @@ public class BudgetAmountController(
     [HttpPost("ExportToExcel")]
     public async Task<IActionResult> ExportToExcel([FromBody] BudgetAmountExcelViewModel request)
     {
-        //var data = GetGroupData(request.Year, request.GroupId);
-        //var dataDetail = GetDetailData(request.BudgetId);
-
-        //sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 2, 2));
-
-        //FillGroupData(sheet, request, cellStyle, yellowCellStyle);
-
         //using (var stream = new MemoryStream())
         //{
         //    workbook.Write(stream);
@@ -611,20 +605,6 @@ public class BudgetAmountController(
 
         //    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
         //}
-
-        // Expression<Func<BudgetAmount, bool>> condition = item => true;
-        // condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == request.BudgetId && BudgetAmount.Status == "O");
-        // condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
-        // var results = _budgetAmountRepository.GetByCondition(condition)
-        //.Include(BudgetAmount => BudgetAmount.Budget)
-        //.AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
-        //.Select(BudgetAmount =>
-        //{
-        //    // 移除需要的欄位中的多餘空格
-        //    BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
-        //    return BudgetAmount;
-        //})
-        //.ToList();
         try
         {
             var result = GetDetailData(request.BudgetId);
