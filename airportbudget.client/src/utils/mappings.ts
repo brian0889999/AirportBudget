@@ -102,3 +102,11 @@ export const groupMapping: Record<number, string> = {
     11: '企劃行政組',
     12: '營運安全組'
 };
+
+export const systemOptionsMapping: Record<number, string> = {
+    101: '土木',
+    102: '水電',
+    103: '建築',
+    104: '綜合',
+    105: '機械',
+};

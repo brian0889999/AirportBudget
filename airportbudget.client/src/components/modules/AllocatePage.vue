@@ -216,7 +216,7 @@ const toUTC = (date: Date) => {
         RolePermissionId: 1,
         GroupId: 1,
         Status: true,
-        System: '',
+        System: undefined,
         LastPasswordChangeDate: toUTC(new Date()),
         ErrCount: 0,
         ErrDate: toUTC(new Date(1990, 0, 1)),

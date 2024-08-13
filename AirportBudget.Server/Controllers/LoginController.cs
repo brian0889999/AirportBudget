@@ -12,17 +12,11 @@ namespace AirportBudget.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LoginController : ControllerBase
+public class LoginController(IGenericRepository<User> users, DESEncryptionUtility dESEncryptionUtility, TokenService tokenService) : ControllerBase
 {
-    private readonly IGenericRepository<User> _users;
-    private readonly DESEncryptionUtility _dESEncryptionUtility;
-    private readonly TokenService _tokenService;
-    public LoginController(IGenericRepository<User> users, DESEncryptionUtility dESEncryptionUtility, TokenService tokenService)
-    {
-        _users = users;
-        _dESEncryptionUtility = dESEncryptionUtility;
-        _tokenService = tokenService;
-    }
+    private readonly IGenericRepository<User> _users = users;
+    private readonly DESEncryptionUtility _dESEncryptionUtility = dESEncryptionUtility;
+    private readonly TokenService _tokenService = tokenService;
 
     //[HttpPost]
     //public IActionResult LoginTest([FromBody] LoginViewModel loginData)

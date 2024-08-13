@@ -78,6 +78,12 @@ public class UserController : ControllerBase
                 }
                 request.Group = null;
                 request.RolePermission = null;
+
+                // 檢查 System 值是否為 0，如果是則設置為 null
+                if (request.System == 0)
+                {
+                    request.System = null;
+                }
                 User newUser = _mapper.Map<User>(request);
 
                 _userRepository.Add(newUser);

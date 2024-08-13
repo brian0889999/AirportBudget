@@ -31,7 +31,7 @@
         RolePermissionId: 0,
         GroupId: 0,
         Status: false,
-        System: '',
+        System: undefined,
         LastPasswordChangeDate: undefined,
         ErrCount: 0,
         ErrDate: new Date(1990, 0, 1),

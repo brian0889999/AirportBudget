@@ -54,7 +54,7 @@
                 </v-row>
             </v-card-title>
             <v-card-text>
-                <v-form ref="privilegeManagementFormRef">
+                <v-form ref="privilegeManagementFormRef" @submit.prevent="saveItem">
                     <v-text-field v-model="privilegeManagementForm.Name" label="姓名" :readonly="isEditMode"
                                   :bg-color="nameColumn"
                                   :rules="[rules.required]"></v-text-field>
@@ -69,7 +69,7 @@
                               label="組室"
                               :rules="[rules.required]"></v-select>
                     <v-select v-model="privilegeManagementForm.System"
-                              :items="ReverseStatusMapping" item-title="text" item-value="value"
+                              :items="systemOptions" item-title="text" item-value="value"
                               label="系統"></v-select>
                     <v-select v-model="privilegeManagementForm.Status"
                               :items="accountStatusOptions" item-title="text" item-value="value"
@@ -81,7 +81,7 @@
                                   :type="showPassword ? 'text' : 'password' "
                                   @click:append-inner="showPassword = !showPassword"
                                   :rules="[rules.passwordFormat]"></v-text-field>
-                    <v-btn @click="saveItem" color="primary" class="mr-2" size="large">{{ saveBtn }}</v-btn>
+                    <v-btn type="submit" @click="saveItem" color="primary" class="mr-2" size="large">{{ saveBtn }}</v-btn>
                     <v-btn @click="cancelEdit" color="primary" size="large">取消</v-btn>
                 </v-form>
             </v-card-text>
@@ -97,7 +97,7 @@ import { ref, computed, onMounted } from 'vue';
 import type { UserDataModel, UserViewModel } from '@/types/apiInterface';
 import type { SelectedOption } from '@/types/vueInterface';
 import type { VDataTable } from 'vuetify/components';
-import { AuthMapping, ReverseGroupIdMapping, Status3Mapping, ReverseStatusMapping } from '@/utils/mappings'; // 對應狀態碼到中文
+import { ReverseGroupIdMapping, Status3Mapping, systemOptionsMapping } from '@/utils/mappings'; // 對應狀態碼到中文
 import { get, put, post, type ApiResponse } from '@/services/api';
 import { RULES } from '@/constants/constants';
 import  AuthTable  from '@/components/modules/AuthTable.vue';
@@ -117,7 +117,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const toUTC = (date: Date) => {
         return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     };
-    const defaultData: UserViewModel = {
+    const defaultUser: UserViewModel = {
         UserId: 0,
         Name: '',
         Account: '',
@@ -125,7 +125,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
         RolePermissionId: 1,
         GroupId: 1,
         Status: true,
-        System: '',
+        System: undefined,
         LastPasswordChangeDate: toUTC(new Date()),
         ErrCount: 0,
         ErrDate: toUTC(new Date(1990, 0, 1)),
@@ -138,7 +138,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
             "PermissionType": 0
         }
     };
-    const privilegeManagementForm = ref<UserViewModel>(defaultData); // 表單的欄位資料
+    const privilegeManagementForm = ref<UserViewModel>(defaultUser); // 表單的欄位資料
     //const status1Items = ref<Array<string>>(['A', 'B', 'C', 'D']);
     const RolePermissionItems :SelectedOption[] = [
         { text: 'A', value: 1 },
@@ -149,7 +149,14 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const accountStatusOptions: SelectedOption[] = [
         { text: '啟用', value: true },
         { text: '停用', value: false },
-    ]
+    ];
+    const systemOptions: SelectedOption[] = [
+        { text: '土木', value: 101},
+        { text: '水電', value: 102},
+        { text: '建築', value: 103},
+        { text: '綜合', value: 104},
+        { text: '機械', value: 105},
+    ];
     const showPassword = ref<boolean>(false);
     const privilegeManagementFormRef = ref<HTMLFormElement | null>(null);
     // pagination
@@ -169,8 +176,8 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
 
     const saveBtn = computed(() => isEditMode.value ? "保存" : "新增");
     const nameColumn = computed(() => isEditMode.value ? "grey-lighten-1" : "");
-    const translateSystem = (System: string | undefined): string => {
-        return System ? Status3Mapping[System] || System : '';
+    const translateSystem = (System: number | undefined): string => {
+        return System ? systemOptionsMapping[System] : '';
     };
     const privilegeManagementFormTitle = computed(() => isEditMode.value ? '編輯使用者' : '新增使用者');
     const translateRolePermission = (rolePermissionId: number): string  => {
@@ -232,7 +239,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const addItem = () => {
         isEditMode.value = false;
         isEditing.value = true;
-        privilegeManagementForm.value = defaultData;
+        privilegeManagementForm.value = { ...defaultUser };
     }
 
     const rules = RULES;
@@ -261,6 +268,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
                 // 這裡可以加入成功處理的邏輯
                 //console.log("操作成功");
                 await fetchUsers();
+                privilegeManagementForm.value = { ...defaultUser };
             } catch (error) {
                 // 處理錯誤
                 console.error(error);
@@ -274,7 +282,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
 
     const cancelEdit = () => {
         isEditing.value = false;
-        privilegeManagementForm.value = defaultData;
+        privilegeManagementForm.value = { ...defaultUser };
     };
     onMounted(fetchUsers);
 </script>

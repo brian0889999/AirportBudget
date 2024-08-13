@@ -25,7 +25,7 @@ namespace AirportBudget.Server.ViewModels
         public int End { get; set; }
         public int InBalance { get; set; }
         public int SubjectActual { get; set; }
-        public int Year { get; set; } // 可為null的年份
+        public int? Year { get; set; } // 可為null的年份
     }
 
     

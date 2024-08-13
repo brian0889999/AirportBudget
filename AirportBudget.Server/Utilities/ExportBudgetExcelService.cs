@@ -207,7 +207,7 @@ namespace AirportBudget.Server.Utilities
                 foreach (var budgetId in budgetIds)
                 {
                     // 根據 BudgetId 獲取 BudgetAmount 資料
-                    var budgetAmountData = GetBudgetAmountData(budgetId, request.Year);
+                    var budgetAmountData = GetBudgetAmountData(budgetId, request.Year, request.StartMonth, request.EndMonth);
                     allData.AddRange(budgetAmountData);
 
                     // 累計當前 Subject6 的所有欄位
@@ -454,11 +454,16 @@ namespace AirportBudget.Server.Utilities
             return budgetId;
         }
 
-        private List<ExportBudgetAmountDTO> GetBudgetAmountData(int budgetId, int year)
+        private List<ExportBudgetAmountDTO> GetBudgetAmountData(int budgetId, int year, int startMonth, int endMonth)
         {
             Expression<Func<BudgetAmount, bool>> condition = item => true;
             condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
             condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true && BudgetAmount.CreatedYear == year);
+
+            // 新增 RequestDate 的月份範圍條件，並檢查是否為 null
+            condition = condition.And(BudgetAmount => BudgetAmount.RequestDate.HasValue
+                                                    && BudgetAmount.RequestDate.Value.Month >= startMonth
+                                                    && BudgetAmount.RequestDate.Value.Month <= endMonth);
 
             var results = _budgetAmountRepository.GetByCondition(condition)
                .Include(b => b.Budget) // 確保包含 Budget 表資料

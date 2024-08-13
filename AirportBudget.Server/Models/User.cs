@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AirportBudget.Server.Enums;
 using System.Text.RegularExpressions;
 
 namespace AirportBudget.Server.Models
@@ -30,8 +31,7 @@ namespace AirportBudget.Server.Models
 
         public bool Status { get; set; }
 
-        [StringLength(20)]
-        public string? System { get; set; } = string.Empty;
+        public UserSystemType? System { get; set; }
 
         public DateTime? LastPasswordChangeDate { get; set; }
 

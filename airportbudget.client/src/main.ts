@@ -8,6 +8,9 @@ import axios from 'axios';
 import vuetify from './plugins/vuetify';
 import '@mdi/font/css/materialdesignicons.css'; // 引入 字體圖標
 
+// 打包後網址調整
+axios.defaults.baseURL = process.env.NODE_ENV === 'production' ? '/AirportBudget/' : '/';
+
 // 請求攔截器
 axios.interceptors.request.use(config => {
     const jwtToken = localStorage.getItem('jwtToken');

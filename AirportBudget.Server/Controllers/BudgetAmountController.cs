@@ -34,6 +34,7 @@ namespace AirportBudget.Server.Controllers;
 public class BudgetAmountController(
     IGenericRepository<BudgetAmount> budgetAmountRepository,
     IGenericRepository<Budget> budgetRepository,
+    IGenericRepository<User> userRepository,
     IMapper mapper,
     AirportBudgetDbContext context,
     BudgetAmountExcelExportService budgetAmountExcelExportService,
@@ -42,6 +43,7 @@ public class BudgetAmountController(
 {
     private readonly IGenericRepository<BudgetAmount> _budgetAmountRepository = budgetAmountRepository;
     private readonly IGenericRepository<Budget> _budgetRepository = budgetRepository;
+    private readonly IGenericRepository<User> _userRepository = userRepository;
     private readonly IMapper _mapper = mapper;
     private readonly AirportBudgetDbContext _context = context;
     private readonly BudgetAmountExcelExportService _budgetAmountExcelExportService = budgetAmountExcelExportService;
@@ -141,17 +143,6 @@ public class BudgetAmountController(
         try
         {
             request.Budget = null;
-            // 檢查 request 的 AmountSerialNumber 是否為 0 且 Type 是否為 "一般"
-            //if (request.AmountSerialNumber == 0 && request.Type == AmountType.Ordinary)
-            //{
-            //    // 取得資料庫中 ID1 欄位的最大值並遞增
-            //    int maxAmountSerialNumber = await _budgetAmountRepository.GetAll().MaxAsync(BudgetAmount => (int?)BudgetAmount.AmountSerialNumber) ?? 0;
-            //    request.AmountSerialNumber = maxAmountSerialNumber + 1;
-            //}
-
-            // 取得當年民國年分
-            //var currentYear = DateTime.Now.Year - 1911;
-            //request.Year = currentYear;
             // 使用 AutoMapper 將 ViewModel 映射到 Model
             BudgetAmount BudgetAmount = _mapper.Map<BudgetAmount>(request);
             // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
@@ -652,46 +643,8 @@ public class BudgetAmountController(
         }
     }
 
-
-    //private void FillGroupData(ISheet sheet, BudgetAmountExcelViewModel data, ICellStyle cellStyle, ICellStyle yellowCellStyle)
-    //{
-    //    IRow row = sheet.CreateRow(3);
-    //    row.CreateCell(0).SetCellValue("組室別：");
-    //    row.GetCell(0).CellStyle = cellStyle;
-    //    row.CreateCell(2).SetCellValue(data.GroupName);
-    //    row.GetCell(2).CellStyle = cellStyle;
-    //    sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 2, 2));
-
-    //    // 填寫其他資料
-    //    // 可以依照原始程式碼逐行填寫資料
-    //}
-
-    //private void FillDetailData(ISheet sheet, List<BudgetAmount> dataDetail, ICellStyle cellStyle)
-    //{
-    //    for (int i = 0; i < dataDetail.Count; i++)
-    //    {
-    //        IRow row = sheet.CreateRow(16 + i);
-    //        row.CreateCell(0).SetCellValue(dataDetail[i].RequestDate.ToString("yyyy/MM/dd"));
-    //        row.CreateCell(1).SetCellValue(dataDetail[i].Type);
-    //        row.CreateCell(2).SetCellValue(dataDetail[i].Description);
-    //        row.CreateCell(3).SetCellValue(dataDetail[i].RequestAmount);
-    //        row.CreateCell(4).SetCellValue(dataDetail[i].PaymentDate.ToString("yyyy/MM/dd"));
-    //        row.CreateCell(5).SetCellValue(dataDetail[i].PaymentAmount);
-    //        row.CreateCell(6).SetCellValue(dataDetail[i].RequestPerson);
-    //        row.CreateCell(7).SetCellValue(dataDetail[i].PaymentPerson);
-    //        row.CreateCell(8).SetCellValue(dataDetail[i].Remarks);
-    //        row.CreateCell(9).SetCellValue(dataDetail[i].ExTax);
-    //        row.CreateCell(10).SetCellValue(dataDetail[i].Reconciled);
-
-    //        for (int j = 0; j <= 10; j++)
-    //        {
-    //            row.GetCell(j).CellStyle = cellStyle;
-    //        }
-    //    }
-    //}
-
     /// <summary>
-    /// Groups的預算資料查詢
+    /// BudgetAmountForExcel資料查詢
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("BudgetAmountForExcel")]
@@ -736,6 +689,97 @@ public class BudgetAmountController(
            .ToList();
 
             //List<BudgetAmountViewModel> budgetAmountViewModels = _mapper.Map<List<BudgetAmountViewModel>>(results);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+
+    /// <summary>
+    /// Fund執行表資料
+    /// </summary>
+    /// <returns>查詢結果</returns>
+    [HttpGet("ExportFundForExcel")]
+    public IActionResult ExportFund(int year, int startMonth, int endMonth, string requestPerson, string sectionCode)
+    {
+        // 將民國年轉換為西元年
+        int westernYear = year + 1911;
+
+        Expression<Func<BudgetAmount, bool>> condition = item => true;
+        //condition = condition.And(item => item.Status != null && item.Status.Trim() == "O");
+        condition = condition.And(item => item.Reconciled == true);
+        condition = condition.And(item => item.PaymentDate >= new DateTime(westernYear, startMonth, 1) && item.PaymentDate <= new DateTime(westernYear, endMonth, DateTime.DaysInMonth(westernYear, endMonth)));
+        condition = condition.And(item => item.RequestPerson == requestPerson);
+        condition = condition.And(item => item.AmountYear == year);
+        condition = condition.And(item => item.Budget!.BudgetName.Substring(0, 2) == sectionCode);
+        condition = condition.And(item => item.Budget!.GroupId == 1);
+
+        try
+        {
+            var results = _budgetAmountRepository.GetByCondition(condition)
+                .GroupBy(item => new
+                {
+                    Name = item.Budget!.BudgetName.Substring(0, 2),
+                    item.RequestPerson
+                })
+                .Select(g => new
+                {
+                    g.Key.Name,
+                    g.Key.RequestPerson,
+                    Money = g.Sum(x => (x.Type == AmountType.Ordinary || x.Type == AmountType.BalanceIn) ? x.PaymentAmount : 0)
+                })
+                .ToList();
+
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+
+    /// <summary>
+    /// Fund執行表資料
+    /// </summary>
+    /// <returns>查詢結果</returns>
+    [HttpGet("ExportFundPersonForExcel")]
+    public IActionResult ExportRequestPerson(int year, int startMonth, int endMonth, UserSystemType system)
+    {
+        // 將民國年轉換為西元年
+        int westernYear = year + 1911;
+
+        Expression<Func<BudgetAmount, bool>> condition = item => true;
+        condition = condition.And(item => item.Reconciled == true);
+        condition = condition.And(item => item.PaymentDate >= new DateTime(westernYear, startMonth, 1) && item.PaymentDate <= new DateTime(westernYear, endMonth, DateTime.DaysInMonth(westernYear, endMonth)));
+        condition = condition.And(item => item.AmountYear == year);
+
+        try
+        {    // 取得符合條件的 BudgetAmount 資料
+            var budgetAmounts = _budgetAmountRepository.GetByCondition(condition)
+                .ToList();
+
+            // 取得所有符合 System 的 User 資料
+            var users = _userRepository.GetByCondition(user => user.System == system)
+                .ToList();
+
+            // 使用 LINQ Join 進行連接
+            var results = budgetAmounts
+                .Join(users,
+                      budget => budget.RequestPerson,
+                      user => user.Name,
+                      (budget, user) => new
+                      {
+                          user.Name
+                          // 可以選擇其他需要的欄位
+                      })
+                 .Select( u => u.Name)
+                .Distinct() // 確保結果不重複
+                .ToList();
+
             return Ok(results);
         }
         catch (Exception ex)

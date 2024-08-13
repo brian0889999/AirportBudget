@@ -56,7 +56,7 @@ const drawer = computed({
         RolePermissionId: 0,
         GroupId: 0,
         Status: false,
-        System: '',
+        System: undefined,
         LastPasswordChangeDate: undefined,
         ErrCount: 0,
         ErrDate: new Date(1990, 0, 1)
@@ -85,9 +85,9 @@ const drawer = computed({
     };
 
     const filteredDrawerItems = computed(() => {
-        //if (user.value.Status1 !== 'A') {
-        //    return [{ title: 'ВеЋЧ', href: '/main/PublicWorksGroup' }];
-        //}
+        if (user.value.RolePermissionId !== 1) {
+            return [{ title: 'ВеЋЧ', href: '/main/PublicWorksGroup' }];
+        }
         return drawerItems.value;
     });
 

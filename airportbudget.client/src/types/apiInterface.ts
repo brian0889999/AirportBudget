@@ -11,7 +11,7 @@ export interface UserViewModel {
     RolePermissionId: number,
     GroupId: number,
     Status: boolean,
-    System?: string,
+    System?: number,
     LastPasswordChangeDate?: Date,
     ErrCount: number,
     ErrDate: Date,
@@ -105,7 +105,7 @@ export interface SelectedDetail extends BudgetAmountViewModel {
     FormattedPaymentDate?: string,
 }
 
-export interface BudgetAmountExcelViewModel extends BudgetAmountViewModel {
+export interface BudgetAmountExcelViewModel {
     BudgetId: number;
     BudgetName: string;
     GroupId: number;
@@ -118,7 +118,7 @@ export interface BudgetAmountExcelViewModel extends BudgetAmountViewModel {
     Type: number; 
     RequestAmount: number;
     PaymentAmount: number;
-    RequestDate: string; 
+    RequestDate: string | null; 
     General: number;
     Out: number;
     In: number;

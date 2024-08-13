@@ -34,13 +34,23 @@ export const downloadFile = async (url: string, data?: any, dataType?: DataType)
 };
 
 export const postDataAndDownloadFile = async (url: string, data: any): Promise<Blob> => {
-    const config: AxiosRequestConfig = {
-        method: 'post',
-        url: url,
-        data: data,
-        responseType: 'blob', // 指定響應類型為blob
-    };
+    try {
+        const config: AxiosRequestConfig = {
+            method: 'post',
+            url: url,
+            data: data,
+            responseType: 'blob',
+        };
 
-    const response = await axios.request(config);
-    return response.data;
+        const response = await axios.request(config);
+
+        if (response.status !== 200) {
+            throw new Error(`Unexpected response status: ${response.status}`);
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('Error during file request:', error);
+        throw error;
+    }
 };
