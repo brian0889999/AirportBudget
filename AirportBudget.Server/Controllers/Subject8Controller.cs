@@ -16,6 +16,8 @@ using AirportBudget.Server.ViewModels;
 using System.Text.RegularExpressions;
 using AirportBudget.Server.Repositorys;
 using Microsoft.AspNetCore.Authorization;
+using System.Linq.Expressions;
+using LinqKit;
 
 
 
@@ -30,15 +32,18 @@ public class Subject8Controller(IGenericRepository<Subject8> subject8, IMapper m
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("Subjects8")]
-    public async Task<IActionResult> GetTypes3(int? groupId, string? id)
+    public async Task<IActionResult> GetTypes3(int subject7Id)
     {
+        Expression<Func<Subject8, bool>> condition = item => true;
+        condition = condition.And(s => s.Subject7Id == subject7Id);
+
         try
         {
             //if(string.IsNullOrEmpty(group) || string.IsNullOrEmpty(id))
             //{
             //    return NotFound();
             //}
-            var Subjects8 = await _subject8.GetByCondition(s => s.GroupId == groupId && s.Subject8SerialCode != null && s.Subject8SerialCode == id).ToListAsync();
+            var Subjects8 = await _subject8.GetByCondition(condition).ToListAsync();
             return Ok(Subjects8);
         }
         catch (Exception ex)

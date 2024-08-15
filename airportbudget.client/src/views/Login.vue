@@ -4,19 +4,19 @@
            cover>
         <v-app-bar color="transparent" flat absolute>
             <!--<v-img :src="logo"
-                   class="ml-3"
-                   max-height="40"
-                   max-width="40"></v-img>-->
-            <v-app-bar-title class="font-weight-bold text-primary">
+               class="ml-3"
+               max-height="40"
+               max-width="40"></v-img>-->
+            <v-app-bar-title class="font-weight-bold text-blue-lighten-3">
                 工務組
-                <span class="text-primary">經費預算管理平台</span>
+                <span class="text-blue-lighten-3">經費預算管理平台</span>
             </v-app-bar-title>
 
             <v-spacer></v-spacer>
 
             <!--<v-btn icon>
-                <v-icon>mdi-cog</v-icon>
-            </v-btn>-->
+            <v-icon>mdi-cog</v-icon>
+        </v-btn>-->
         </v-app-bar>
         <v-container fill-height fluid>
             <v-row justify="center" align="center" style="width: 100%; height: 100vh;">
@@ -50,6 +50,26 @@
                 </v-col>
             </v-row>
         </v-container>
+
+        <!-- Footer Section -->
+        <v-footer color="transparent" style=" position: absolute; bottom: 0; width: 100%; " padless absolute height="30px">
+        <v-container fluid>
+            <v-row justify="center">
+                <v-col class="text-right" cols="7">
+                    <span>
+                        &copy; 2024 工務組經費預算管理平台
+                    </span>
+                </v-col>
+                <v-spacer></v-spacer>
+                <v-col class="text-right" cols="5">
+                    <span>
+                        系統維護廠商：巨思科技股份有限公司
+                    </span>
+                </v-col>
+            </v-row>
+        </v-container>
+    </v-footer>
+
     </v-img>
 </template>
 
@@ -57,8 +77,7 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { ref } from 'vue';
-import type { LoginViewModel } from '@/types/apiInterface';
-import type { UserViewModel } from '@/types/apiInterface';
+import type { LoginViewModel, UserViewModel } from '@/types/apiInterface';
 import { useRouter } from 'vue-router';
 import { post, type ApiResponse } from '../services/api';
 import { RULES } from '@/constants/constants';
@@ -89,8 +108,13 @@ const rules = RULES;
                 localStorage.setItem('jwtToken', jwtToken);
                 router.push({ name: 'main' });
             }
-        } catch (error) {
+            if (response.StatusCode === 201) {
+                //console.log(response.Data);
+                alert(response.Data)
+            }
+        } catch (error: any) {
             console.error('登入失敗:', error); // 處理登入失敗的情況
+            alert('登入失敗');
         } finally {
             btnLoading.value = false;
         }
@@ -100,5 +124,14 @@ const rules = RULES;
 <style scoped>
     .overlay {
         background-color: rgba(255, 255, 255, 0.8); /* 設定背景顏色及透明度 */
+    }
+
+    v-footer {
+        bottom: 0;
+        width: 100%;
+    }
+
+    .footer-text {
+        font-size: 14px; /* 調整字體大小 */
     }
 </style>

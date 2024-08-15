@@ -38,11 +38,11 @@ public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapp
         try
         {
             Expression<Func<Budget, bool>> condition = item => true;
-            condition = condition.And(Budget => Budget.GroupId == GroupId && Budget.Subject6.Contains(Subject6));
-            condition = condition.And(Budget => Budget.Subject7.Contains(Subject7) && Budget.CreatedYear == CreatedYear);
+            condition = condition.And(Budget => Budget.GroupId == GroupId && Budget.Subject6 == Subject6);
+            condition = condition.And(Budget => Budget.Subject7 == Subject7 && Budget.CreatedYear == CreatedYear);
             if (!string.IsNullOrEmpty(Subject8))
             {
-                condition = condition.And(Budget => Budget.Subject8.Contains(Subject8));
+                condition = condition.And(Budget => Budget.Subject8 == Subject8);
             }
 
 

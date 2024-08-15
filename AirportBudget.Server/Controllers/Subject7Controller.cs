@@ -16,6 +16,8 @@ using AirportBudget.Server.ViewModels;
 using System.Text.RegularExpressions;
 using AirportBudget.Server.Repositorys;
 using Microsoft.AspNetCore.Authorization;
+using System.Linq.Expressions;
+using LinqKit;
 
 
 
@@ -30,15 +32,17 @@ public class Subject7Controller(IGenericRepository<Subject7> subject7, IMapper m
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("Subjects7")]
-    public async Task<IActionResult> GetSubject7(int? groupId, string? id)
+    public async Task<IActionResult> GetSubject7(int subject6Id)
     {
         try
         {
-            if (groupId == null || string.IsNullOrEmpty(id))
+            Expression<Func<Subject7, bool>> condition = item => true;
+            condition = condition.And(s => s.Subject6Id != 0 && s.Subject6Id == subject6Id);
+            if (subject6Id == 0)
             {
-                return NotFound();
+                return NotFound("傳輸的subject6為0");
             }
-            var Subjects7 = await _subject7.GetByCondition(s => s.GroupId == groupId && s.Subject7SerialCode != null && s.Subject7SerialCode.Substring(0, id.Length) == id).ToListAsync();
+            var Subjects7 = await _subject7.GetByCondition(condition).ToListAsync();
             return Ok(Subjects7);
         }
         catch (Exception ex)

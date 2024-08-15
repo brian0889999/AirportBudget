@@ -16,6 +16,8 @@ using AirportBudget.Server.ViewModels;
 using System.Text.RegularExpressions;
 using AirportBudget.Server.Repositorys;
 using Microsoft.AspNetCore.Authorization;
+using System.Linq.Expressions;
+using LinqKit;
 
 
 
@@ -44,15 +46,22 @@ public class Subject6Controller(IGenericRepository<Subject6> subject6, IMapper m
 
 
     [HttpGet("Subjects6_1")]
-    public async Task<IActionResult> GetSubject6_1(int? groupId, string? id)
+    public async Task<IActionResult> GetSubject6_1(int? groupId, string? subject6Id)
     {
         try
         {
-            if (groupId == null || string.IsNullOrEmpty(id))
+            Expression<Func<Subject6, bool>> condition = item => true;
+            condition = condition.And(s => s.GroupId == groupId
+                             && s.Subject6Name != null
+                             && s.Subject6Name.Substring(0, 2) == subject6Id);
+
+            if (groupId == null || string.IsNullOrEmpty(subject6Id))
             {
                 return Ok("這個組室沒有指定科目!");
             }
-            var Subjects6_1 = await _subject6.GetByCondition(s => s.GroupId == groupId && s.Subject6SerialCode != null && s.Subject6SerialCode == id).ToListAsync();
+            var Subjects6_1 = await _subject6
+           .GetByCondition(condition)
+           .ToListAsync();
 
             if (Subjects6_1 == null || !Subjects6_1.Any())
             {

@@ -146,7 +146,7 @@
     //}>();
     const rules = RULES;
 
-    console.log(props.data);
+    //console.log(props.data);
     const cardTitle = props.data.Type !== 2 ? '勻入資料' : '勻出資料';
     const linkBudgetFormRef = ref<HTMLFormElement | null>(null);
     const typeValues = ref<SelectedOption[]>([

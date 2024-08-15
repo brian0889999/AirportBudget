@@ -48,7 +48,7 @@
                                               :rules="[rules.required]"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
-                                    <v-select v-model="AllocateForm.CreatedYear"
+                                    <v-select v-model="AllocateForm.AmountYear"
                                               :items="years"
                                               label="年度"
                                               :rules="[rules.required]"></v-select>
@@ -195,8 +195,8 @@ const groups = ref<SelectedOption[]>([
 const subjects6 = ref<any[]>([{ text: '無', value: "0" }]);
 const subjects7 = ref([{ text: '無', value: "0" }]);
 const subjects8 = ref([{ text: '無', value: "0" }]);
-const subjects6_1 = ref([{ text: '無', value: "0" }]);
-const subjects7_1 = ref([{ text: '無', value: "0" }]);
+const subjects6_1 = ref([{ Subject6Id: 0, text: "無", value: "" }]);
+const subjects7_1 = ref([{ Subject7Id: 0, text: '無', value: "" }]);
 const subjects8_1 = ref([{ text: '無', value: "0" }]);
 const BudgetId_1 = ref<number>(0);
 const people = ref<string[]>([]);
@@ -341,7 +341,6 @@ const toUTC = (date: Date) => {
                         value: item.ID,
                     }))
                 );
-                //console.log(subjects6.value);
             }
         } catch (error) {
             console.error('Failed to fetch subjects6:', error);
@@ -396,7 +395,7 @@ const toUTC = (date: Date) => {
         const url = '/api/Subject6/Subjects6_1';
         const data = {
             groupId: AllocateForm.value.InGroupId,
-            id: AllocateForm.value.Subject6.substring(0, 2) // 提取前兩個字元
+            subject6Id: AllocateForm.value.Subject6.substring(0, 2) // 提取前兩個字元
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
@@ -406,10 +405,11 @@ const toUTC = (date: Date) => {
                 return;
             }
             if (response.StatusCode == 200) {
-                subjects6_1.value = [{ text: "無", value: "0" }].concat(
-                    response.Data?.map((item: { Subject6Name: string; Subject6SerialCode: string }) => ({
+                subjects6_1.value = [{ Subject6Id: 0, text: "無", value: "" }].concat(
+                    response.Data?.map((item: { Subject6Id: string; Subject6Name: string; GroupId: number }) => ({
+                        Subject6Id: item.Subject6Id,
                         text: item.Subject6Name,
-                        value: item.Subject6SerialCode,
+                        value: item.Subject6Name,
                     })) || []
                 );
             }
@@ -418,43 +418,47 @@ const toUTC = (date: Date) => {
         }
     };
 
-    const fetchSubjects7_1 = async () => {
+    const fetchSubjects7_1 = async ( selectedSubject6Name: string ) => {
         if (!AllocateForm.value.Subject6_1) return;
+        const selectedItem = subjects6_1.value.find(item => item.value === selectedSubject6Name);
         const url = '/api/Subject7/Subjects7';
         const data = {
-            groupId: AllocateForm.value.InGroupId,
-            id: AllocateForm.value.Subject6_1
+            //groupId: AllocateForm.value.InGroupId,
+            subject6Id: selectedItem?.Subject6Id
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
             if (response.StatusCode == 200) {
-                subjects7_1.value = [{ text: "無", value: "0" }].concat(
-                    response.Data.map((item: { Subject7Name: string; Subject7SerialCode: string }) => ({
+                subjects7_1.value = [{ Subject7Id: 0, text: "無", value: "" }].concat(
+                    response.Data.map((item: { Subject7Id: number; Subject7Name: string; Subject6Id: number }) => ({
+                        Subject7Id: item.Subject7Id,
                         text: item.Subject7Name,
-                        value: item.Subject7SerialCode,
+                        value: item.Subject7Name,
                     })) || []
                 );
             }
+            //console.log(subjects7_1.value);
         } catch (error) {
             console.error('Failed to fetch subjects7_1:', error);
         }
     };
 
-    const fetchSubjects8_1 = async () => {
+    const fetchSubjects8_1 = async ( selectedSubject7Name: string ) => {
         if (!AllocateForm.value.Subject7_1) return;
+        const selectedItem = subjects7_1.value.find(item => item.value === selectedSubject7Name);
         const url = '/api/Subject8/Subjects8';
         const data = {
-            groupId: AllocateForm.value.InGroupId,
-            id: AllocateForm.value.Subject7_1
+            //groupId: AllocateForm.value.InGroupId,
+            subject7Id: selectedItem?.Subject7Id
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
             if (response.StatusCode == 200) {
                 subjects8_1.value = [{ text: '無', value: '' }].concat(
-                    response.Data.map((item: { Subject8Name: string, Subject8SerialCode: string }) => ({
+                    response.Data.map((item: { Subject8Id: number, Subject8Name: string }) => ({
                         text: item.Subject8Name,
-                        value: item.Subject8SerialCode
-                    })) || [] );
+                        value: item.Subject8Name
+                    })) || []);
             }
         } catch (error) {
             console.error('Failed to fetch subjects8_1:', error);
@@ -466,31 +470,23 @@ const toUTC = (date: Date) => {
         const { valid } = await AllocateFormRef.value?.validate();
         if (!valid) return;
 
-        
-
-        //if (ID1 <= 0) {
-        //    console.error('Invalid ID1:', ID1);
-        //    return;
-        //}
-
         const dataOut = {
             ...AllocateForm.value,
             Type: 2, // 改成帶參數進去
             //Remarks: groupMapping[AllocateForm.value.InGroupId] + `${AllocateForm.value.Subject7_1 + '00'}`,
             GroupId: AllocateForm.value.GroupId,
-            AmountYear: AllocateForm.value.AmountYear
         };
         const dataIn = {
             ...dataOut,
             Type: 3,
             //Remarks: groupMapping[AllocateForm.value.GroupId] + `${AllocateForm.value.Subject7.substring(0, 4) + '00'}`,
             GroupId: AllocateForm.value.InGroupId
-        }
+        };
+
         //console.log('dataOut', dataOut);
         //console.log('dataIn', dataIn);
         //saveMoney3(dataOut);
         //saveMoney3(dataIn);
-
 
         const idUrl = '/api/Budget/GetBudgetId';
         const getIdDataViewModel: GetIdDataViewModel = {

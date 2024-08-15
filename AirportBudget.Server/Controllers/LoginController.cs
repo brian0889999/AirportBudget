@@ -55,6 +55,11 @@ public class LoginController(IGenericRepository<User> users, DESEncryptionUtilit
     //    }
     //}
 
+
+    /// <summary>
+    /// 使用者登入
+    /// </summary>
+    /// <returns>登入結果</returns>
     [HttpPost]
 
     public IActionResult Login([FromBody] LoginViewModel loginForm)
@@ -71,7 +76,7 @@ public class LoginController(IGenericRepository<User> users, DESEncryptionUtilit
             if (user != null && user.Password == password)
             {   if(user.Status == false)
                 {
-                    return Unauthorized("使用者已停用");
+                    return StatusCode(201, "使用者已停用");
                 }
                 var jwtToken = _tokenService.GenerateJwtToken(user);
 

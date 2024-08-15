@@ -30,7 +30,7 @@ export interface BudgetAmountViewModel {
     Type: number;
     RequestAmount: number;
     PaymentAmount: number;
-    RequestDate: string;
+    RequestDate: string | null;
     PaymentDate?: string;
     RequestPerson: string;
     PaymentPerson: string;

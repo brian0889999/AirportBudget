@@ -65,10 +65,10 @@
                 </v-btn>
             </template>
             <!--<template #item.action="{ item }">
-        <v-btn v-if="canAdd"
-               color="primary"
-               @click="openAllocatePage(item)">勻出</v-btn>
-    </template>-->
+                <v-btn v-if="canAdd"
+                       color="primary"
+                       @click="openAllocatePage(item)">勻出</v-btn>
+            </template>-->
             <template #item.AnnualBudgetAmount="{ item }">
                 <span :class="{'negative-number': (item.AnnualBudgetAmount ?? 0) < 0}">
                     {{ formatNumber(item.AnnualBudgetAmount) }}
@@ -115,7 +115,7 @@
                 </span>
             </template>
         </v-data-table>
-         <!--isSelectedItem--> 
+        <!--isSelectedItem-->
         <v-row justify="start" v-if="isSelectedItem && !showDetailForm && !showAllocatePage">
             <v-col cols="12" sm="8" md="6">
                 <v-btn @click="previousPage"
@@ -125,7 +125,7 @@
                 </v-btn>
             </v-col>
         </v-row>
-        
+
         <v-data-table v-if="isSelectedItem && !showDetailForm && !showAllocatePage"
                       :headers="selectedHeaders"
                       :items="selectedItem"
@@ -174,7 +174,7 @@
                 <span :class="{'negative-number': (item.SubjectActual ?? 0)<  0}">
                     {{ formatNumber(item.SubjectActual)}}
                 </span>
-            </template> 
+            </template>
             <template #item.End="{ item }">
                 <span :class="{'negative-number': (item.End ?? 0) < 0}">
                     {{ formatNumber(item.End)}}
@@ -194,9 +194,9 @@
                         <v-btn color="primary" @click="addItem" v-if="canAdd">新增</v-btn>
                     </v-col>
                 </v-row>
-                    <v-pagination v-model="detailPage"
-                                  :length="detailPageCount"
-                                  class="mb-4"></v-pagination>
+                <v-pagination v-model="detailPage"
+                              :length="detailPageCount"
+                              class="mb-4"></v-pagination>
             </template>
             <template #item.Type="{ item }">
                 {{ TypeMapping[item.Type] }}
@@ -238,14 +238,16 @@
         <AllocatePage v-if="showAllocatePage"
                       :data="allocateForm.data"
                       :searchYear="searchYear"
-                      @cancel="cancelAllocatePage"/>
-        <v-dialog v-model="linkBudgetForm.visible"
-                  max-width="1200px"
-                  @click:outside="cancelLinkBudgetForm">
-            <LinkBudgetForm :data="linkBudgetForm.data"
-                            @cancel="cancelLinkBudgetForm" />
-        </v-dialog>
+                      @cancel="cancelAllocatePage" />
     </v-container>
+
+
+    <v-dialog v-model="linkBudgetForm.visible"
+              max-width="1200px"
+              @click:outside="cancelLinkBudgetForm">
+        <LinkBudgetForm :data="linkBudgetForm.data"
+                        @cancel="cancelLinkBudgetForm" />
+    </v-dialog>
 </template>
 
 
@@ -378,7 +380,7 @@
         Type: 1,
         RequestAmount: 0,
         PaymentAmount: 0,
-        RequestDate: '',
+        RequestDate: null,
         RequestPerson: '',
         PaymentPerson: '',
         ExTax: false,
@@ -598,6 +600,7 @@
 
             return {
                 ...firstItem,
+                RequestDate: firstItem.RequestDate != "" ? firstItem.RequestDate : null, // 後端DateTime不匹配空字串
                 General: general,
                 Out: out,
                 In: inValue,
@@ -648,7 +651,7 @@
     const handleExcelClick = async (budget: BudgetAmountExcelViewModel) => {
         try {
             budget.Year = searchYear.value;
-            console.log(budget);
+            //console.log(budget);
             const url = '/api/BudgetAmount/ExportToExcel';
             const fileBlob = await postDataAndDownloadFile(url, budget);
 

@@ -14,16 +14,13 @@ namespace AirportBudget.Server.Models
         [MaxLength(100)]
         public string Subject7Name { get; set; } = string.Empty;
 
-        [MaxLength(100)]
-        public string Subject7FullName { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(50)]
-        public string Subject7SerialCode { get; set; } = string.Empty;
 
-        [ForeignKey("GroupId")]
-        public int GroupId { get; set; }
+        [ForeignKey("Subject6Id")]
+        public int Subject6Id { get; set; }
 
-        public Group? Group { get; set; }
+        public Subject6? Subject6 { get; set; }
+
+        public ICollection<Subject8>? Subject8s { get; set; }
     }
 }

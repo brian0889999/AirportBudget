@@ -16,7 +16,7 @@ namespace AirportBudget.Server.ViewModels
         public int Type { get; set; }
         public int RequestAmount { get; set; }
         public int PaymentAmount { get; set; }
-        public DateTime RequestDate { get; set; }
+        public DateTime? RequestDate { get; set; }
         public int General { get; set; }
         public int Out { get; set; }
         public int In { get; set; }

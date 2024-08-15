@@ -596,6 +596,11 @@ public class BudgetAmountController(
 
         //    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
         //}
+        if (request == null || request.BudgetId <= 0)
+        {
+            return BadRequest("Invalid request data.");
+        }
+
         try
         {
             var result = GetDetailData(request.BudgetId);
