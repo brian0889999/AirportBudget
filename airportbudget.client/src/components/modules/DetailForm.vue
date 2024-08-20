@@ -45,7 +45,7 @@
                                 <v-text-field v-model="editedItem.PaymentAmount"
                                               label="實付金額"
                                               type="number"
-                                              :rules="[rules.lessThanOrEqualToPurchaseMoney]"></v-text-field>
+                                              :rules="[rules.lessThanOrEqualToRequestAmount]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6">
                                 <v-select v-model="editedItem.RequestPerson"
@@ -100,7 +100,7 @@
 <script setup lang="ts">
     import { defineProps, defineEmits, ref, reactive, watch, type PropType, onMounted, computed } from 'vue';
     import { type ApiResponse, get, put, post } from '@/services/api';
-    import type { UserDataModel, BudgetAmountViewModel, SelectedDetail, SoftDeleteViewModel, MoneyRawData, UserViewModel } from '@/types/apiInterface';
+    import type { UserDataModel, BudgetAmountViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
     import type { SelectedOption } from '@/types/vueInterface';
     import { TypeMapping } from '@/utils/mappings';
     import { RULES } from '@/constants/constants';
@@ -143,10 +143,12 @@
     const cardTitle = props.isEdit ? '編輯預算資料' : '新增預算資料';
     const IsPermissionId2 = computed(() => props.user.RolePermissionId === 2); // 使用者權限是2,return true
     const limitBudget = computed(() => props.limitBudget ?? 0);
-    const limitPurchaseMoney = computed(() => {
+    const limitRequestAmount = computed(() => {
         const value = editedItem.value.RequestAmount;
         return typeof value === 'string' ? parseFloat(value) : value ?? 0; // 轉成數字
     });
+
+    const initialRequestAmount = ref<number>(0); // 用來儲存初始的請購金額
 
     // 定義函數
     const getTextColor = (boolean: boolean): string => {
@@ -162,10 +164,11 @@
     const rules = {
         ...RULES,
         lessThanOrEqualToBudget: (value: number) => {
-            return value <= limitBudget.value || `請購金額不能大於 ${limitBudget.value}`;
+            const availableBudget = limitBudget.value + initialRequestAmount.value; // 考慮已存在的金額
+            return value <= availableBudget || `請購金額不能大於 ${availableBudget}`;
         },
-        lessThanOrEqualToPurchaseMoney: (value: number) => {
-            return value <= limitPurchaseMoney.value || '實付金額不能大於請購金額';
+        lessThanOrEqualToRequestAmount: (value: number) => {
+            return value <= limitRequestAmount.value || '實付金額不能大於請購金額';
         }
     };
 
@@ -295,6 +298,9 @@
     //    }
     //};
     onMounted(fetchUsers);
+    onMounted(() => {
+        initialRequestAmount.value = editedItem.value.RequestAmount ?? 0;
+    });
 </script>
 
 <style scoped>

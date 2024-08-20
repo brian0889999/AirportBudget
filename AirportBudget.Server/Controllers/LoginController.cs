@@ -7,14 +7,15 @@ using AirportBudget.Server.Models;
 using AirportBudget.Server.Interfaces.Repositorys;
 using System.Linq.Expressions;
 using AirportBudget.Server.Services;
+using LinqKit;
 
 namespace AirportBudget.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LoginController(IGenericRepository<User> users, DESEncryptionUtility dESEncryptionUtility, TokenService tokenService) : ControllerBase
+public class LoginController(IGenericRepository<User> userRepository, DESEncryptionUtility dESEncryptionUtility, TokenService tokenService) : ControllerBase
 {
-    private readonly IGenericRepository<User> _users = users;
+    private readonly IGenericRepository<User> _userRepository = userRepository;
     private readonly DESEncryptionUtility _dESEncryptionUtility = dESEncryptionUtility;
     private readonly TokenService _tokenService = tokenService;
 
@@ -72,12 +73,32 @@ public class LoginController(IGenericRepository<User> users, DESEncryptionUtilit
                 EF.Functions.Collate(item.Password, "SQL_Latin1_General_CP1_CS_AS") == loginForm.Password;
 
             var password = _dESEncryptionUtility.EncryptDES(loginForm.Password);
-            var user = _users.GetByCondition(x => x.Account == loginForm.Account).FirstOrDefault();
+            var user = _userRepository.GetByCondition(x => x.Account == loginForm.Account).FirstOrDefault();
             if (user != null && user.Password == password)
             {   if(user.Status == false)
                 {
                     return StatusCode(201, "使用者已停用");
                 }
+
+                // 檢查密碼最後更改日期是否超過半年
+                if (user.LastPasswordChangeDate.HasValue)
+                {
+                    var sixMonthsAgo = DateTime.Now.AddMonths(-6);
+                    if (user.LastPasswordChangeDate.Value < sixMonthsAgo)
+                    {   
+                        var userId = _userRepository.GetByCondition(u => u.Account == loginForm.Account && u.Password == password)
+                                           .Select( u => u.UserId )
+                                           .FirstOrDefault();
+                        //return StatusCode(202, "需要更改密碼，因為超過半年未更改密碼");
+                        return StatusCode(202, new
+                        {
+                            message = "需要更改密碼，因為超過半年未更改密碼",
+                            UserId = userId,
+                        });
+                    }
+                }
+
+                // 生成 JWT Token
                 var jwtToken = _tokenService.GenerateJwtToken(user);
 
                 return Ok(jwtToken);
@@ -94,4 +115,67 @@ public class LoginController(IGenericRepository<User> users, DESEncryptionUtilit
             return Unauthorized("未收到帳號資訊"); // 回傳登入失敗
         }
     }
+
+    /// <summary>
+    /// 更新密碼
+    /// </summary>
+    /// <returns>更新結果</returns>
+    [HttpPut("ChangePassword")]
+    public IActionResult ChangePassword([FromBody] ChangePasswordViewModel request)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest("沒有user資料");
+            }
+            else
+            {
+                // 根據UserId去找資料
+                Expression<Func<User, bool>> condition = u => true;
+                condition = condition.And(u => u.UserId == request.UserId);
+
+                var existingUser = _userRepository.GetByCondition(condition)
+                    .Include(u => u.Group)
+                    .Include(u => u.RolePermission)
+                    .FirstOrDefault();
+
+                if (existingUser == null)
+                {
+                    return NotFound("沒有找到user");
+                }
+
+                // 檢查舊密碼是否正確
+                if (!string.IsNullOrEmpty(request.OldPassword))
+                {
+                    var decryptedPassword = _dESEncryptionUtility.DecryptDES(existingUser.Password.Trim());
+
+                    if (request.OldPassword != decryptedPassword)
+                    {
+                        return BadRequest("舊密碼不正確");
+                    }
+                }
+
+                // 檢查新密碼和確認密碼是否相同
+                if (request.NewPassword != request.ConfirmPassword)
+                {
+                    return BadRequest("新密碼和確認密碼不一致");
+                }
+
+                existingUser.Password = _dESEncryptionUtility.EncryptDES(request.NewPassword); // 更新密碼並加密
+                existingUser.LastPasswordChangeDate = DateTime.Now; // 更新LastPasswordChangeDate
+
+                _userRepository.Update(existingUser);
+
+                return Ok("密碼更新成功");
+            }
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+
+
 }

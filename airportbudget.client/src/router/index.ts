@@ -16,6 +16,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: '登入' },
     },
     {
+        path: '/ChangePasswordPage',
+        name: 'ChangePasswordPage',
+        component: () => import(/*webpackChunkName "ChangePasswordPage" */ '@/views/ChangePasswordPage.vue'),
+        meta: { title: '密碼更改頁面' },
+    },
+    {
         path: '/main',
         name: 'main',
         redirect: { name: 'PublicWorksGroup' },

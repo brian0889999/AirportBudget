@@ -56,9 +56,9 @@
         <v-container fluid>
             <v-row justify="center">
                 <v-col class="text-right" cols="7">
-                    <span>
+                    <!--<span>
                         &copy; 2024 工務組經費預算管理平台
-                    </span>
+                    </span>-->
                 </v-col>
                 <v-spacer></v-spacer>
                 <v-col class="text-right" cols="5">
@@ -110,7 +110,16 @@ const rules = RULES;
             }
             if (response.StatusCode === 201) {
                 //console.log(response.Data);
-                alert(response.Data)
+                alert(response.Data);
+            }
+            if (response.StatusCode === 202) { // 半年更改密碼
+                alert(response.Data.message);
+                //console.log(response.Data.UserId);
+                const userId = response.Data.UserId;
+                router.push({
+                    name: 'ChangePasswordPage',
+                    query: { userId: userId }
+                });
             }
         } catch (error: any) {
             console.error('登入失敗:', error); // 處理登入失敗的情況
