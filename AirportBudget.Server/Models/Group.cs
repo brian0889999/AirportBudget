@@ -21,7 +21,7 @@ namespace AirportBudget.Server.Models
         public ICollection<Budget>? Budgets { get; set; }
 
 
-        public ICollection<Subject6>? Subject6s { get; set; }
+        //public ICollection<Subject6>? Subject6s { get; set; }
 
 
         //public ICollection<Subject7>? Subject7s { get; set; }

@@ -56,13 +56,13 @@ public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapp
         }
     }
 
-    [HttpGet("GetSubject6")]
-    public IActionResult GetSubject6(int GroupId, int Year)
+    [HttpGet("GetSubjects6")]
+    public IActionResult GetSubject6(int groupId, int year)
     {
         try
         {
             Expression<Func<Budget, bool>> condition = item => true;
-            condition = condition.And(b => b.GroupId == GroupId && b.CreatedYear == Year);
+            condition = condition.And(b => b.GroupId == groupId && b.CreatedYear == year);
 
             // 使用 LINQ 查詢篩選條件
             var subject6s = _budgetRepository.GetByCondition(condition)
@@ -78,6 +78,50 @@ public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapp
         }
     }
 
+    [HttpGet("GetSubjects7")]
+    public IActionResult GetSubject7(int groupId, int year, string subject6)
+    {
+        try
+        {
+            Expression<Func<Budget, bool>> condition = item => true;
+            condition = condition.And(b => b.GroupId == groupId && b.CreatedYear == year && b.Subject6 == subject6);
+
+            // 使用 LINQ 查詢篩選條件
+            var subject6s = _budgetRepository.GetByCondition(condition)
+                                            .Select(b => b.Subject7)  // 只選取 Subject7 欄位
+                                            .Distinct()               // 去重複
+                                            .ToList();                // 轉換為 List
+
+            return Ok(subject6s);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
+
+    [HttpGet("GetSubjects8")]
+    public IActionResult GetSubject8(int groupId, int year, string subject7)
+    {
+        try
+        {
+            Expression<Func<Budget, bool>> condition = item => true;
+            condition = condition.And(b => b.GroupId == groupId && b.CreatedYear == year && b.Subject7 == subject7);
+
+            // 使用 LINQ 查詢篩選條件
+            // 使用 LINQ 查詢並篩選條件，排除空字串
+            var subject6s = _budgetRepository.GetByCondition(condition)
+                                             .Where(b => !string.IsNullOrEmpty(b.Subject8))  // 排除空字串
+                                             .Select(b => b.Subject8)  // 只選取 Subject8 欄位
+                                             .Distinct()               // 去重複
+                                             .ToList();                // 轉換為 List
+            return Ok(subject6s);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex}");
+        }
+    }
 
     [HttpGet("BudgetIdForExcel")]
     public IActionResult GetBudgetId(int GroupId, int Year, string Subject6)

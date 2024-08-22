@@ -15,9 +15,9 @@ namespace AirportBudget.Server.Datas
         public DbSet<RolePermission> RolePermission { get; set; }
         public DbSet<Group> Group { get; set; }
         public DbSet<Budget> Budget { get; set; }
-        public DbSet<Subject6> Subject6 { get; set; }
-        public DbSet<Subject7> Subject7 { get; set; }
-        public DbSet<Subject8> Subject8 { get; set; }
+        //public DbSet<Subject6> Subject6 { get; set; }
+        //public DbSet<Subject7> Subject7 { get; set; }
+        //public DbSet<Subject8> Subject8 { get; set; }
         public DbSet<BudgetAmount> BudgetAmount { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

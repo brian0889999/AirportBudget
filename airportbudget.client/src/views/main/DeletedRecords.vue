@@ -16,11 +16,15 @@
                                       style="width: 100%;" />
                     </v-col>
                     <v-col cols="3">
-                        <v-btn @click="searchDeletedRecords"
+                        <v-btn text="查詢"
+                               :loading="loading"
+                               @click="searchDeletedRecords"
                                color="primary"
                                class="mt-2"
                                size="large">
-                            查詢
+                            <template v-slot:loader>
+                                <v-progress-circular indeterminate></v-progress-circular>
+                            </template>
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -56,9 +60,13 @@
                 {{ formatNumber(item.PaymentAmount) }}
             </template>
             <template v-slot:item.actions="{ item }">
-                <v-btn @click="restoreData(item)"
+                <v-btn text="還原"
+                       :loading="loading"
+                       @click="restoreData(item)"
                        color="primary">
-                    還原
+                    <template v-slot:loader>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
                 </v-btn>
             </template>
         </v-data-table>
@@ -105,6 +113,7 @@ const searchDeletedRecords = async () => {
     const data: any = { CreatedYear: searchYear.value, Description: ''};
     if (descriptionInput) data.Description = descriptionInput.value;
     try {
+        loading.value = true;
         //console.log(123);
         //console.log(data);
         const response: ApiResponse<BudgetAmountViewModel[]> = await get<BudgetAmountViewModel[]>(url, data);
@@ -117,7 +126,10 @@ const searchDeletedRecords = async () => {
     }
     catch (error) {
         console.error(error);
-        }
+    }
+    finally {
+        loading.value = false;
+    }
     };
     const restoreData = async (data: BudgetAmountViewModel) => {
         const isConfirmed = confirm('你確定要還原嗎？');
@@ -137,12 +149,12 @@ const searchDeletedRecords = async () => {
         }
     };
 
-const page = ref(1);
-const itemsPerPage = 12;
+const page = ref<number>(1);
+const itemsPerPage: number = 12;
 const pageCount = computed(() => Math.ceil(deletedRecords.value.length / itemsPerPage));
 const paginatedItems = computed(() => {
-  const start = (page.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
+  const start: number = (page.value - 1) * itemsPerPage;
+  const end: number = start + itemsPerPage;
     return deletedRecords.value.slice(start, end);
 });
 </script>

@@ -20,11 +20,15 @@
                                   style="width: 100%;" />
                 </v-col>
                 <v-col cols="3">
-                    <v-btn @click="searchByInputs"
+                    <v-btn text="查詢"
+                           @click="searchByInputs"
+                           :loading="props.loading"
                            color="primary"
                            class="mt-2"
                            size="large">
-                        查詢
+                        <template #loader>
+                            <v-progress-circular indeterminate></v-progress-circular>
+                        </template>
                     </v-btn>
                 </v-col>
             </v-row>
@@ -34,6 +38,13 @@
 
 <script setup lang="ts">
     import { defineProps, defineEmits, ref } from 'vue';
+
+    const props = defineProps({
+        loading: {
+            type: Boolean,
+            required: true
+        },
+    });
 
     const descriptionInput = ref('');
     const requestAmountStartInput = ref<number | null>(null);

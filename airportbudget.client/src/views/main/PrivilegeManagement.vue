@@ -3,8 +3,13 @@
     <v-container style="width:100%; display:flex;">
         <v-row>
             <v-col cols="12" sm="8" md="6">
-                <v-btn v-if="!isEditing" @click="addItem" color="primary" class="mb-4">新增使用者</v-btn>
+                <v-btn text="新增使用者" :loading="loading" v-if="!isEditing" @click="addItem" color="primary" class="mb-4">
+                    <template v-slot:load>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
+                </v-btn>
                 <v-data-table v-if="!isEditing"
+                              :loading="loading"
                               :headers="authheaders"
                               :items="paginatedItems"
                               item-key="Name"
@@ -81,8 +86,8 @@
                                   :type="showPassword ? 'text' : 'password' "
                                   @click:append-inner="showPassword = !showPassword"
                                   :rules="[rules.passwordFormat]"></v-text-field>
-                    <v-btn type="submit" @click="saveItem" color="primary" class="mr-2" size="large">{{ saveBtn }}</v-btn>
-                    <v-btn @click="cancelEdit" color="primary" size="large">取消</v-btn>
+                    <v-btn :text="saveBtn" type="submit" @click="saveItem" color="primary" class="mr-2" size="large"></v-btn>
+                    <v-btn text="取消" @click="cancelEdit" color="primary" size="large"></v-btn>
                 </v-form>
             </v-card-text>
         </v-card>
@@ -103,6 +108,7 @@ import { RULES } from '@/constants/constants';
 import  AuthTable  from '@/components/modules/AuthTable.vue';
 type ReadonlyHeaders = VDataTable['$props']['headers'];
 
+    const loading = ref<boolean>(false);
     const authheaders: ReadonlyHeaders = [
         { title: '姓名', align: 'start', sortable: false, key: 'Name', value: 'Name' },
         { title: '權限', key: 'RolePermissionId', value: 'RolePermissionId' },
@@ -213,18 +219,22 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     //取得其他使用者
     const fetchUsers = async () => {
         try {
+            loading.value = true;
             const url = '/api/User'
             const response: ApiResponse<UserViewModel[]> = await get<UserViewModel[]>(url);
             /*console.log(response.Data);*/
-       if (response && response.Data && response.Data) {
-          listForm.value = response.Data;
-          //console.log("listForm.value", response.Data);
-        } else {
-          console.error("Response data is null or undefined");
-        }
+            if (response && response.Data && response.Data) {
+                listForm.value = response.Data;
+                //console.log("listForm.value", response.Data);
+            } else {
+                console.error("Response data is null or undefined");
+            }
         }
         catch (error) {
             console.error(error);
+        }
+        finally {
+            loading.value = false;
         }
     }
 
@@ -255,15 +265,16 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
             const url = '/api/User'
             const data: UserViewModel = privilegeManagementForm.value;
             try {
+                loading.value = true;
                 let response: ApiResponse<any>;
                 if (data.UserId) { // 如果是編輯用put,新增用post
-                         response = await put<any>(url, data);
-                        //console.log(response.Data);
+                     response = await put<any>(url, data);
+                    //console.log(response.Data);
                 }
                 else
                 {
-                         response = await post<any>(url, data);
-                        //console.log(response.Data);
+                     response = await post<any>(url, data);
+                    //console.log(response.Data);
                 };
                 // 這裡可以加入成功處理的邏輯
                 //console.log("操作成功");
@@ -275,6 +286,7 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
                 // 這裡可以加入錯誤處理的邏輯,例如提示用戶或記錄錯誤
             } finally {
                 isEditing.value = false;
+                loading.value = false;
             }
         }
         /*console.log(privilegeManagementForm.value);*/

@@ -59,6 +59,9 @@
                     <!--<span>
                         &copy; 2024 工務組經費預算管理平台
                     </span>-->
+                    <span>
+                        &copy; Copyright 2024
+                    </span>
                 </v-col>
                 <v-spacer></v-spacer>
                 <v-col class="text-right" cols="5">

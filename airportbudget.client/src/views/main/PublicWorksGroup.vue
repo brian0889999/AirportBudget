@@ -18,11 +18,15 @@
                         </v-select>
                     </v-col>
                     <v-col cols="3">
-                        <v-btn @click="fetchBudgetData"
+                        <v-btn text="查詢"
+                               :loading="loading"
+                               @click="fetchBudgetData"
                                color="primary"
                                class="mt-2"
                                size="large">
-                            查詢
+                            <template v-slot:loader>
+                                <v-progress-circular indeterminate></v-progress-circular>
+                            </template>
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -45,23 +49,35 @@
                               class="mb-4"></v-pagination>
             </template>
             <template #item.action="{ item }">
-                <v-btn color="primary"
+                <v-btn text="內容"
+                       :loading="loading"
+                       color="primary"
                        class="mb-2"
                        @click="handleBudgetClick(item)">
-                    內容
+                    <template v-slot:loader>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
                 </v-btn>
-                <v-btn v-if="canAllocate"
+                <v-btn text="勻出"
+                       :loading="loading"
+                       v-if="canAllocate"
                        color="primary"
                        @click="openAllocatePage(item)"
                        class="mb-2">
-                    勻出
+                    <template v-slot:loader>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
                 </v-btn>
                 <br />
-                <v-btn v-if="item.BudgetName"
+                <v-btn text="EXCEL"
+                       :loading="loading"
+                       v-if="item.BudgetName"
                        class="mb-2"
                        @click="handleExcelClick(item)"
                        color="primary">
-                    EXCEL
+                    <template v-slot:loader>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
                 </v-btn>
             </template>
             <!--<template #item.action="{ item }">
@@ -118,10 +134,14 @@
         <!--isSelectedItem-->
         <v-row justify="start" v-if="isSelectedItem && !showDetailForm && !showAllocatePage">
             <v-col cols="12" sm="8" md="6">
-                <v-btn @click="previousPage"
+                <v-btn text="回上一頁"
+                       :loading="loading"
+                       @click="previousPage"
                        color="primary"
                        class="mb-2">
-                    回上一頁
+                <template v-slot:loader>
+                    <v-progress-circular indeterminate></v-progress-circular>
+                </template>    
                 </v-btn>
             </v-col>
         </v-row>
@@ -187,11 +207,20 @@
                       hide-default-footer>
             <template #top>
                 <search-fields v-if="isSelectedItem && !showDetailForm && !showAllocatePage"
+                               :loading="loading"
                                @search="handleSearch"
                                class="mt-1" />
                 <v-row no-gutters>
                     <v-col v-if="canAdd">
-                        <v-btn color="primary" @click="addItem" v-if="canAdd">新增</v-btn>
+                        <v-btn text="新增"
+                               :loading="loading"
+                               color="primary"
+                               @click="addItem" 
+                               v-if="canAdd">
+                            <template #loader>
+                                <v-progress-circular indeterminate></v-progress-circular>
+                            </template>
+                        </v-btn>
                     </v-col>
                 </v-row>
                 <v-pagination v-model="detailPage"
@@ -650,6 +679,7 @@
 
     const handleExcelClick = async (budget: BudgetAmountExcelViewModel) => {
         try {
+            loading.value = true;
             budget.Year = searchYear.value;
             //console.log(budget);
             const url = '/api/BudgetAmount/ExportToExcel';
@@ -665,6 +695,8 @@
             document.body.removeChild(link);
         } catch (error) {
             console.error('Error downloading the file', error);
+        } finally {
+            loading.value = false;
         }
     };
 
@@ -688,7 +720,7 @@
         // 編輯項目的處理邏輯
         //console.log('updatedItem', updatedItem);
         try {
-            //await requery(updatedItem); // 把資訊帶進去重查
+            // 重查
             await fetchBudgetData();
             await fetchSelectedDetail(currentBudgetId.value);
             // 重新更新 selectedItem
@@ -768,7 +800,15 @@
         showAllocatePage.value = true;
     }
 
-    const cancelAllocatePage = () => {
+    const cancelAllocatePage = async () => {
+
+        await fetchBudgetData();
+        await fetchSelectedDetail(currentBudgetId.value);
+        // 重新更新 selectedItem
+        const budgetItem = computedItems.value.find(budget => budget.BudgetId === currentBudgetId.value);
+        if (budgetItem) {
+            await handleBudgetClick(budgetItem);
+        }
         showAllocatePage.value = false;
     }
 

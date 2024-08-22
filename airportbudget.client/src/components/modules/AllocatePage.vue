@@ -12,8 +12,7 @@
                                     <v-select v-model="AllocateForm.GroupId"
                                               :items="groups" item-title="text" item-value="value"
                                               label="組室別"
-                                              :readonly="true"
-                                              @update:modelValue="fetchSubjects6"></v-select>
+                                              :readonly="true"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                     <v-select v-model="AllocateForm.Subject6"
@@ -21,8 +20,7 @@
                                               item-title="text"
                                               item-value="value"
                                               label="六級(科目)"
-                                              :readonly="true"
-                                              @update:modelValue="fetchSubjects7"></v-select>
+                                              :readonly="true"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                     <v-select v-model="AllocateForm.Subject7"
@@ -30,8 +28,7 @@
                                               item-title="text"
                                               item-value="value"
                                               label="七級(子目)"
-                                              :readonly="true"
-                                              @update:modelValue="fetchSubjects8"></v-select>
+                                              :readonly="true"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                     <v-select v-model="AllocateForm.Subject8"
@@ -87,33 +84,28 @@
                                     <v-select v-model="AllocateForm.InGroupId"
                                               :items="groups" item-title="text" item-value="value"
                                               label="組室別"
-                                              @update:modelValue="fetchSubjects6_1"
+                                              @update:modelValue="fetchSubjects6_in"
                                               :rules="[rules.required]"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
-                                    <v-select v-model="AllocateForm.Subject6_1"
-                                              :items="subjects6_1"
-                                              item-title="text"
-                                              item-value="value"
+                                    <v-select v-model="AllocateForm.Subject6_in"
+                                              :items="Subjects6_in"
                                               label="六級(科目)"
-                                              @update:modelValue="fetchSubjects7_1"
-                                              :rules="[rules.required]"></v-select>
+                                              @update:modelValue="fetchSubjects7_in"
+                                              :rules="[rules.required, rules.subject6_inRequired]"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
-                                    <v-select v-model="AllocateForm.Subject7_1"
-                                              :items="subjects7_1"
-                                              item-title="text"
-                                              item-value="value"
+                                    <v-select v-model="AllocateForm.Subject7_in"
+                                              :items="Subjects7_in"
                                               label="七級(子目)"
-                                              @update:modelValue="fetchSubjects8_1"
-                                              :rules="[rules.required]"></v-select>
+                                              @update:modelValue="fetchSubjects8_in"
+                                              :rules="[rules.required, rules.subject7_inRequired]"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
-                                    <v-select v-model="AllocateForm.Subject8_1"
-                                              :items="subjects8_1"
-                                              item-title="text"
-                                              item-value="value"
-                                              label="八級(細目)"></v-select>
+                                    <v-select v-model="AllocateForm.Subject8_in"
+                                              :items="Subjects8_in"
+                                              label="八級(細目)"
+                                              :rules="[rules.subject8_inCheck]"></v-select>
                                 </v-col>
                             </v-row>
                             <v-row>
@@ -128,18 +120,26 @@
                         </v-card-text>
                         <v-card-actions>
                             <v-spacer></v-spacer>
-                            <v-btn color="primary"
+                            <v-btn text="取消"
+                                   color="primary"
                                    variant="outlined"
                                    @click="cancelData"
-                                   size="large">
-                                取消
+                                   size="large"
+                                   :loading="btnLoading">
+                                <template v-slot:loader>
+                                    <v-progress-circular indeterminate></v-progress-circular>
+                                </template>
                             </v-btn>
-                            <v-btn type="submit"
+                            <v-btn text="確認"
+                                   type="submit"
                                    variant="elevated"
                                    color="primary"
                                    class="mr-3"
-                                   size="large">
-                                確認
+                                   size="large"
+                                   :loading="btnLoading">
+                                <template v-slot:loader>
+                                    <v-progress-circular indeterminate></v-progress-circular>
+                                </template>
                             </v-btn>
                         </v-card-actions>
                     </v-card>
@@ -153,7 +153,7 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { ref, computed, onMounted, reactive, watch } from 'vue';
-    import type { AllocateForm, UserDataModel, AllocateFormViewModel, SelectedBudgetModel, UserViewModel, GetIdDataViewModel } from '@/types/apiInterface';
+import type { AllocateForm, UserDataModel, AllocateFormViewModel, SelectedBudgetModel, UserViewModel, GetIdDataViewModel } from '@/types/apiInterface';
 import type { SelectedOption } from '@/types/vueInterface';
 //import { groupMapping } from '@/utils/mappings';
 import { get, put, post, type ApiResponse } from '@/services/api';
@@ -176,9 +176,9 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
 const sourceData: SelectedBudgetModel = props.data!;
 const emit = defineEmits(['cancel']);
 const AllocateFormRef = ref<HTMLFormElement | null>(null);
-const loading = ref(false);
+const btnLoading = ref<boolean>(false);
 const groups = ref<SelectedOption[]>([
-    { "text": "無", "value": 0 },
+    { "text": "請選擇", "value": 0 },
     { "text": "工務組", "value": 1 },
     { "text": "業務組", "value": 2 },
     { "text": "人事室", "value": 3 },
@@ -195,15 +195,14 @@ const groups = ref<SelectedOption[]>([
 const subjects6 = ref<any[]>([{ text: '無', value: "0" }]);
 const subjects7 = ref([{ text: '無', value: "0" }]);
 const subjects8 = ref([{ text: '無', value: "0" }]);
-const subjects6_1 = ref([{ Subject6Id: 0, text: "無", value: "" }]);
-const subjects7_1 = ref([{ Subject7Id: 0, text: '無', value: "" }]);
-const subjects8_1 = ref([{ text: '無', value: "0" }]);
-const BudgetId_1 = ref<number>(0);
+const Subjects6_in = ref<string[]>(['無']);
+const Subjects7_in = ref<string[]>(["無"]);
+//const Subjects7_in = ref([{ Subject7Id: 0, text: '無', value: "" }]);
+const Subjects8_in = ref<string[]>(["無"]);
 const people = ref<string[]>([]);
-// 取得當年度的民國年
-const currentYear: number = new Date().getFullYear() - 1911;
-// 生成從111到當年度的年份陣列
-const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i)); 
+
+const currentYear: number = new Date().getFullYear() - 1911; // 取得當年度的民國年
+const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i));  // 生成從111到當年度的年份陣列
 
 const toUTC = (date: Date) => {
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -226,19 +225,19 @@ const toUTC = (date: Date) => {
         BudgetAmountId: 0,
         //AmountSerialNumber: 0,
         Status: "O",
-        BudgetId: 0,
-        BudgetName: '',
-        GroupId: 0,
+        BudgetId: sourceData.BudgetId,
+        BudgetName: sourceData.BudgetName!,
+        GroupId: sourceData.GroupId,
         InGroupId: 0,
         GroupName: '',
-        Subject6: '',
-        Subject7: '',
-        Subject8: '',
+        Subject6: sourceData.Subject6 ?? '',
+        Subject7: sourceData.Subject7 ?? '',
+        Subject8: sourceData.Subject8 ?? '',
         RequestAmount: 0,
         PaymentAmount: 0,
-        Subject6_1: '',
-        Subject7_1: '',
-        Subject8_1: '',
+        Subject6_in: '無',
+        Subject7_in: '無',
+        Subject8_in: '無',
         RequestPerson: '',
         CreatedYear: props.searchYear!, 
         AmountYear: props.searchYear!,
@@ -269,17 +268,16 @@ const toUTC = (date: Date) => {
 
     const user = ref<UserViewModel>(defaultUser); 
 
-    const AllocateForm = ref<any>({
+    const AllocateForm = ref<AllocateForm>({
         ...defaultAllocateForm,
-        GroupId: sourceData.GroupId,
-        BudgetId: sourceData.BudgetId,
-        BudgetName: sourceData.BudgetName!,
-        Subject6: sourceData.Subject6 ?? '',
-        Subject7: sourceData.Subject7 ?? '',
-        Subject8: sourceData.Subject8 ?? '',
+        //GroupId: sourceData.GroupId,
+        //BudgetId: sourceData.BudgetId,
+        //BudgetName: sourceData.BudgetName!,
+        //Subject6: sourceData.Subject6 ?? '',
+        //Subject7: sourceData.Subject7 ?? '',
+        //Subject8: sourceData.Subject8 ?? '',
         RequestPerson: user.value.Name,
         PaymentPerson: user.value.Name,
-
     });
 
     const rules = {
@@ -290,11 +288,25 @@ const toUTC = (date: Date) => {
         //lessThanOrEqualToPurchaseMoney: (value: number) => {
         //    return value <= limitPurchaseMoney.value || '實付金額不能大於請購金額';
         //}
+
+        subject6_inRequired: (value: string) => {
+            return value !== "無" || "六級(科目)不能為 '無'";
+        },
+        subject7_inRequired: (value: string) => {
+            return value !== "無" || "七級(子目)不能為 '無'";
+        },
+        subject8_inCheck: (value: string) => {
+            // 當 Subjects8_in 有 "無" 以外的值時，檢查是否為 "無"
+            const hasValidOption = Subjects8_in.value.some((subject) => subject !== "無");
+            if (hasValidOption && value === "無") {
+                return "八級(細目)不能為 '無'";
+            }
+            return true;
+        },
+
     };
     
-    //watch(() => AllocateForm.value.group, async () => {
-    //    await fetchSubjects6();
-    //});
+
     const getCurrentUser = async () => {
         const url = '/api/User/Current';
         try {
@@ -325,155 +337,164 @@ const toUTC = (date: Date) => {
         }
     };
 
-    const fetchSubjects6 = async () => {
-        //console.log('fetchSubjects6 called');
-        if (!AllocateForm.value.Group) return;
-        const url = '/api/Subject6/Subjects6';
-        const data = { group: AllocateForm.value.Group };
-        try {
-            const response: ApiResponse<any> = await get<any>(url, data);
-            if (response.StatusCode == 200) {
-                //console.log(response.Data);
-                // 將資料轉換成 { text: Name, value: ID } 的結構 concat方法可以展開陣列
-                subjects6.value = [{ text: "無", value: "0" }].concat(
-                    response.Data.map((item: { Name: string; ID: string }) => ({
-                        text: item.Name,
-                        value: item.ID,
-                    }))
-                );
-            }
-        } catch (error) {
-            console.error('Failed to fetch subjects6:', error);
-        }
-    };
+    //const fetchSubjects6 = async () => {
+    //    //console.log('fetchSubjects6 called');
+    //    if (!AllocateForm.value.Group) return;
+    //    const url = '/api/Subject6/Subjects6';
+    //    const data = { group: AllocateForm.value.Group };
+    //    try {
+    //        const response: ApiResponse<any> = await get<any>(url, data);
+    //        if (response.StatusCode == 200) {
+    //            //console.log(response.Data);
+    //            // 將資料轉換成 { text: Name, value: ID } 的結構 concat方法可以展開陣列
+    //            subjects6.value = [{ text: "無", value: "0" }].concat(
+    //                response.Data.map((item: { Name: string; ID: string }) => ({
+    //                    text: item.Name,
+    //                    value: item.ID,
+    //                }))
+    //            );
+    //        }
+    //    } catch (error) {
+    //        console.error('Failed to fetch subjects6:', error);
+    //    }
+    //};
 
-    const fetchSubjects7 = async () => {
-        if (!AllocateForm.value.Subject6) return;
-        const url = '/api/Type2/Subjects7';
-        const data = {
-            group: AllocateForm.value.Group,
-            id: AllocateForm.value.Subject6
-        };
-        try {
-            const response: ApiResponse<any> = await get<any>(url, data);
-            if (response.StatusCode == 200) {
-                subjects7.value = [{ text: "無", value: "0" }].concat(
-                    response.Data.map((item: { Name: string; ID: string }) => ({
-                        text: item.Name,
-                        value: item.ID,
-                    }))
-                );
-            }
-        } catch (error) {
-            console.error('Failed to fetch subjects7:', error);
-        }
-    };
+    //const fetchSubjects7 = async () => {
+    //    if (!AllocateForm.value.Subject6) return;
+    //    const url = '/api/Type2/Subjects7';
+    //    const data = {
+    //        group: AllocateForm.value.Group,
+    //        id: AllocateForm.value.Subject6
+    //    };
+    //    try {
+    //        const response: ApiResponse<any> = await get<any>(url, data);
+    //        if (response.StatusCode == 200) {
+    //            subjects7.value = [{ text: "無", value: "0" }].concat(
+    //                response.Data.map((item: { Name: string; ID: string }) => ({
+    //                    text: item.Name,
+    //                    value: item.ID,
+    //                }))
+    //            );
+    //        }
+    //    } catch (error) {
+    //        console.error('Failed to fetch subjects7:', error);
+    //    }
+    //};
 
-    const fetchSubjects8 = async () => {
-        if (!AllocateForm.value.Subject7) return;
-        const url = '/api/Type3/Subjects8';
-        const data = {
-            group: AllocateForm.value.Group,
-            id: AllocateForm.value.Subject7
-        };
-        try {
-            const response: ApiResponse<any> = await get<any>(url, data);
-            if (response.StatusCode == 200) {
-                subjects8.value = [{ text: '無', value: '' }].concat(
-                    response.Data.map((item: { Name: string, ID: string }) => ({
-                    text: item.Name,
-                    value: item.ID
-                })));
-            }
-        } catch (error) {
-            console.error('Failed to fetch subjects8:', error);
-        }
-    };
+    //const fetchSubjects8 = async () => {
+    //    if (!AllocateForm.value.Subject7) return;
+    //    const url = '/api/Type3/Subjects8';
+    //    const data = {
+    //        group: AllocateForm.value.Group,
+    //        id: AllocateForm.value.Subject7
+    //    };
+    //    try {
+    //        const response: ApiResponse<any> = await get<any>(url, data);
+    //        if (response.StatusCode == 200) {
+    //            subjects8.value = [{ text: '無', value: '' }].concat(
+    //                response.Data?.map((item: { Name: string, ID: string }) => ({
+    //                text: item.Name,
+    //                value: item.ID
+    //            }))) || [];
+    //        }
+    //    } catch (error) {
+    //        console.error('Failed to fetch subjects8:', error);
+    //    }
+    //};
 
-    const fetchSubjects6_1 = async () => {
+    const fetchSubjects6_in = async () => {
+        AllocateForm.value.Subject6_in = "無";
+        AllocateForm.value.Subject7_in = "無";
+        AllocateForm.value.Subject8_in = "無";
+        Subjects6_in.value = ['無'];
+        Subjects7_in.value = ["無"];
+        Subjects8_in.value = ["無"];
         if (!AllocateForm.value.InGroupId) return;
-        const url = '/api/Subject6/Subjects6_1';
+        const url = '/api/Budget/GetSubjects6';
         const data = {
             groupId: AllocateForm.value.InGroupId,
-            subject6Id: AllocateForm.value.Subject6.substring(0, 2) // 提取前兩個字元
+            year: AllocateForm.value.CreatedYear,
+            //subject6: AllocateForm.value.Subject6.substring(0, 2) // 提取前兩個字元
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
             if (response.Data == '這個組室沒有指定科目!') {
+                Subjects6_in.value = ["無"];
+                Subjects7_in.value = ["無"];
+                Subjects8_in.value = ["無"];
                 alert(response.Data);
                 //AllocateForm.value = {...defaultAllocateForm };
                 return;
             }
             if (response.StatusCode == 200) {
-                subjects6_1.value = [{ Subject6Id: 0, text: "無", value: "" }].concat(
-                    response.Data?.map((item: { Subject6Id: string; Subject6Name: string; GroupId: number }) => ({
-                        Subject6Id: item.Subject6Id,
-                        text: item.Subject6Name,
-                        value: item.Subject6Name,
-                    })) || []
+                Subjects6_in.value = ['無'].concat(
+                    response.Data || []
                 );
             }
         } catch (error) {
-            console.error('Failed to fetch subjects6_1:', error);
+            console.error('Failed to fetch Subjects6_in:', error);
         }
     };
 
-    const fetchSubjects7_1 = async ( selectedSubject6Name: string ) => {
-        if (!AllocateForm.value.Subject6_1) return;
-        const selectedItem = subjects6_1.value.find(item => item.value === selectedSubject6Name);
-        const url = '/api/Subject7/Subjects7';
+    const fetchSubjects7_in = async () => {
+        AllocateForm.value.Subject7_in = "無";
+        AllocateForm.value.Subject8_in = "無";
+        Subjects7_in.value = ["無"];
+        Subjects8_in.value = ["無"];
+        if (!AllocateForm.value.Subject6_in || AllocateForm.value.Subject6_in == "無") return;
+        //const selectedItem = Subjects6_in.value.find(item => item.value === selectedSubject6Name);
+        const url = '/api/Budget/GetSubjects7';
         const data = {
-            //groupId: AllocateForm.value.InGroupId,
-            subject6Id: selectedItem?.Subject6Id
+            groupId: AllocateForm.value.InGroupId,
+            year: AllocateForm.value.CreatedYear,
+            subject6: AllocateForm.value.Subject6_in
+            //subject6Id: selectedItem?.Subject6Id
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
             if (response.StatusCode == 200) {
-                subjects7_1.value = [{ Subject7Id: 0, text: "無", value: "" }].concat(
-                    response.Data.map((item: { Subject7Id: number; Subject7Name: string; Subject6Id: number }) => ({
-                        Subject7Id: item.Subject7Id,
-                        text: item.Subject7Name,
-                        value: item.Subject7Name,
-                    })) || []
+                Subjects7_in.value = ["無"].concat(
+                    response.Data|| []
                 );
             }
-            //console.log(subjects7_1.value);
         } catch (error) {
-            console.error('Failed to fetch subjects7_1:', error);
+            console.error('Failed to fetch Subjects7_in:', error);
         }
     };
 
-    const fetchSubjects8_1 = async ( selectedSubject7Name: string ) => {
-        if (!AllocateForm.value.Subject7_1) return;
-        const selectedItem = subjects7_1.value.find(item => item.value === selectedSubject7Name);
-        const url = '/api/Subject8/Subjects8';
+    const fetchSubjects8_in = async (selectedSubject7Name: string) => {
+        AllocateForm.value.Subject8_in = "無";
+        Subjects8_in.value = ["無"];
+        if (!AllocateForm.value.Subject7_in || AllocateForm.value.Subject7_in == "無") return;
+        //const selectedItem = Subjects7_in.value.find(item => item.value === selectedSubject7Name);
+        const url = '/api/Budget/GetSubjects8';
         const data = {
-            //groupId: AllocateForm.value.InGroupId,
-            subject7Id: selectedItem?.Subject7Id
+            groupId: AllocateForm.value.InGroupId,
+            year: AllocateForm.value.CreatedYear,
+            subject7: AllocateForm.value.Subject7_in,
+            //subject7Id: selectedItem?.Subject7Id
         };
         try {
             const response: ApiResponse<any> = await get<any>(url, data);
-            if (response.StatusCode == 200) {
-                subjects8_1.value = [{ text: '無', value: '' }].concat(
-                    response.Data.map((item: { Subject8Id: number, Subject8Name: string }) => ({
-                        text: item.Subject8Name,
-                        value: item.Subject8Name
-                    })) || []);
+            if (response.StatusCode === 200 && Array.isArray(response.Data) && response.Data.length > 0) {
+                Subjects8_in.value = ["無"].concat(response.Data);
+            } else if (response.StatusCode === 200 && (!Array.isArray(response.Data) || response.Data.length === 0)) {
+                console.log('Received empty data, no assignment made to Subjects8_in.');
             }
         } catch (error) {
-            console.error('Failed to fetch subjects8_1:', error);
+            console.error('Failed to fetch Subjects8_in:', error);
         }
     };
 
     const handleSubmit = async () => {
-
+        btnLoading.value = true;
         const { valid } = await AllocateFormRef.value?.validate();
-        if (!valid) return;
-
+        if (!valid) { btnLoading.value = false; return; };
+        if (AllocateForm.value.Subject8_in == '無') AllocateForm.value.Subject8_in = ''; // 如果Subject8沒有值,設定為空值
         const dataOut = {
             ...AllocateForm.value,
             Type: 2, // 改成帶參數進去
-            //Remarks: groupMapping[AllocateForm.value.InGroupId] + `${AllocateForm.value.Subject7_1 + '00'}`,
+            //Remarks: groupMapping[AllocateForm.value.InGroupId] + `${AllocateForm.value.Subjects7_in + '00'}`,
             GroupId: AllocateForm.value.GroupId,
         };
         const dataIn = {
@@ -483,24 +504,17 @@ const toUTC = (date: Date) => {
             GroupId: AllocateForm.value.InGroupId
         };
 
-        //console.log('dataOut', dataOut);
-        //console.log('dataIn', dataIn);
-        //saveMoney3(dataOut);
-        //saveMoney3(dataIn);
-
         const idUrl = '/api/Budget/GetBudgetId';
         const getIdDataViewModel: GetIdDataViewModel = {
-            GroupId: dataIn.GroupId,
-            Subject6: dataIn.Subject6_1,
-            Subject7: dataIn.Subject7_1,
-            Subject8: dataIn.Subject8_1 ?? "",
+            GroupId: dataIn.GroupId!,
+            Subject6: dataIn.Subject6_in,
+            Subject7: dataIn.Subject7_in,
+            Subject8: dataIn.Subject8_in ?? "",
             CreatedYear: dataIn.CreatedYear
         }
         try {
-            //console.log(getIdDataViewModel);
             const response: ApiResponse<any> = await get<any>(idUrl, getIdDataViewModel);
             if (response.StatusCode == 200) {
-                //console.log(response.Data);
                 dataIn.BudgetId = response.Data.BudgetId;
             }
         } catch (error) {
@@ -512,7 +526,7 @@ const toUTC = (date: Date) => {
             dataOut,
             dataIn
         ];
-        //console.log('data', data);
+
         try {
             const response: ApiResponse<any> = await post<any>(url, data);
             if (response.StatusCode == 200) {
@@ -525,7 +539,9 @@ const toUTC = (date: Date) => {
             console.error(error);
         } finally {
             emit('cancel');
+            btnLoading.value = false;
         }
+
     };
 
     const cancelData = () => {
@@ -539,6 +555,10 @@ const toUTC = (date: Date) => {
             AllocateForm.value.PaymentPerson = newValue.Name;
         }
     });
+
+    //watch(() => AllocateForm.value.group, async () => {
+    //    await fetchSubjects6();
+    //});
 
     onMounted(async () => {
         await getCurrentUser();

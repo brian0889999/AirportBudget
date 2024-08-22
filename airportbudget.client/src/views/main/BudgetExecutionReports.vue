@@ -26,7 +26,11 @@
                         </v-row>
                         <v-row>
                             <v-col cols="12">
-                                <v-btn size="large" color="primary" @click="exportFundData">匯出</v-btn>
+                                <v-btn text="匯出" :loading="loading" size="large" color="primary" @click="exportFundData">
+                                    <template v-slot:load>
+                                        <v-progress-circular indeterminate></v-progress-circular>
+                                    </template>
+                                </v-btn>
                             </v-col>
                         </v-row>
                     </v-card-text>
@@ -64,7 +68,11 @@
                             </v-row>
                             <v-row>
                                 <v-col cols="12">
-                                    <v-btn size="large" color="primary" @click="exportBudgetData">匯出</v-btn>
+                                    <v-btn text="匯出" :loading="loading" size="large" color="primary" @click="exportBudgetData">
+                                        <template v-slot:load>
+                                            <v-progress-circular indeterminate></v-progress-circular>
+                                        </template>
+                                    </v-btn>
                                 </v-col>
                             </v-row>
                         </v-card-text>
@@ -85,6 +93,7 @@
     import type { ExportFundRequestViewModel, ExportBudgetRequestViewModel } from '@/types/apiInterface';
     import { RULES } from '@/constants/constants';
 
+    const loading = ref<boolean>(false);
     const exportBudgetExcelRef = ref<HTMLFormElement | null>(null);
     const rules = RULES;
     const startYear: number = 111;
@@ -113,6 +122,7 @@
 
     const getGroups = async () => {
         try {
+            loading.value = true;
             const url = '/api/Group/SelectedOption';
             const response: ApiResponse<SelectedOption[]> = await get<SelectedOption[]>(url);
             //console.log(1);
@@ -125,6 +135,8 @@
             }
         } catch (error) {
             console.error('Error downloading the file', error);
+        } finally {
+            loading.value = false;
         }
     };
 
@@ -134,6 +146,7 @@
         //console.log('End Month (Fund):', endMonthFund.value);
         // 實際的匯出邏輯在這裡實作
         try {
+            loading.value = true;
             const url = '/api/BudgetAmount/ExportFundExcel';
             const data: ExportFundRequestViewModel = {
                 Year: selectedYearFund.value,
@@ -153,6 +166,9 @@
         } catch (error) {
             console.error('Error downloading the file', error);
         }
+        finally {
+            loading.value = false;
+        }
     };
 
 
@@ -166,6 +182,7 @@
         if (!valid) return;
         // 實際的匯出邏輯在這裡實作
         try {
+            loading.value = true;
             const url = '/api/BudgetAmount/ExportBudgetExcel';
             const data: ExportBudgetRequestViewModel = {
                 GroupId: selectedGroupIdBudget.value,
@@ -185,6 +202,8 @@
             document.body.removeChild(link);
         } catch (error) {
             console.error('Error downloading the file', error);
+        } finally {
+            loading.value = false;
         }
     };
 
