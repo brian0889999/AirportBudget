@@ -19,6 +19,7 @@ namespace AirportBudget.Server.Datas
         //public DbSet<Subject7> Subject7 { get; set; }
         //public DbSet<Subject8> Subject8 { get; set; }
         public DbSet<BudgetAmount> BudgetAmount { get; set; }
+        public DbSet<BudgetAmountLog> BudgetAmountLog { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

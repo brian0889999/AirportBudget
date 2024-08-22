@@ -327,10 +327,10 @@ const toUTC = (date: Date) => {
     const fetchPeople = async () => {
         const url = '/api/User';
         try {
-            const response: ApiResponse<UserDataModel[]> = await get<UserDataModel[]>(url);  // 假設有一個 API 提供請購人資料
+            const response: ApiResponse<UserViewModel[]> = await get<UserViewModel[]>(url);  // 假設有一個 API 提供請購人資料
             //console.log('Data:', response.Data);
             if (response.StatusCode == 200) {
-                people.value = response.Data?.map((person: UserDataModel) => person.Name ?? '') || [];
+                people.value = response.Data?.map((person: UserViewModel) => person.Name ?? '') || [];
             }
         } catch (error) {
             console.error('Failed to fetch people:', error);
@@ -414,6 +414,7 @@ const toUTC = (date: Date) => {
         const data = {
             groupId: AllocateForm.value.InGroupId,
             year: AllocateForm.value.CreatedYear,
+            subject6: AllocateForm.value.Subject6,
             //subject6: AllocateForm.value.Subject6.substring(0, 2) // 提取前兩個字元
         };
         try {
@@ -430,6 +431,7 @@ const toUTC = (date: Date) => {
                 Subjects6_in.value = ['無'].concat(
                     response.Data || []
                 );
+                //console.log(response.Data);
             }
         } catch (error) {
             console.error('Failed to fetch Subjects6_in:', error);

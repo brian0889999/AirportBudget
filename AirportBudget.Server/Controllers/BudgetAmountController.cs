@@ -470,20 +470,32 @@ public class BudgetAmountController(
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("ByDeletedRecords")]
-    public IActionResult SearchDeletedRecords(int CreatedYear, string? Description)
+    public IActionResult SearchDeletedRecords(int createdYear, string? description, string? requestPerson, string? paymentPerson)
     {
         try
         {
-            var deletedRecords = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.CreatedYear == CreatedYear && BudgetAmount.IsValid == false)
+            Expression<Func<BudgetAmount, bool>> condition = item => true;
+            condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == createdYear && BudgetAmount.IsValid == false);
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                condition = condition.And(BudgetAmount => BudgetAmount.Description != null && BudgetAmount.Description.Contains(description));
+            }
+
+            if (!string.IsNullOrEmpty(requestPerson))
+            {
+                condition = condition.And(BudgetAmount => BudgetAmount.RequestPerson != null && BudgetAmount.RequestPerson == requestPerson);
+            }
+
+            if (!string.IsNullOrEmpty(paymentPerson))
+            {
+                condition = condition.And(BudgetAmount => BudgetAmount.PaymentPerson != null && BudgetAmount.PaymentPerson == paymentPerson);
+            }
+
+            var deletedRecords = _budgetAmountRepository.GetByCondition(condition)
                 .Include(BA => BA.Budget)
                 .ThenInclude(B => B!.Group)
                 .ToList();
-
-            if (!string.IsNullOrEmpty(Description))
-            {
-                deletedRecords = deletedRecords.Where(BudgetAmount => BudgetAmount.Description != null && BudgetAmount.Description.Contains(Description)).ToList();
-            }
-
 
             // 將 Status 欄位的多餘空格移除
             var cleanedRecords = deletedRecords

@@ -57,18 +57,24 @@ public class BudgetController(IGenericRepository<Budget> budgetRepository, IMapp
     }
 
     [HttpGet("GetSubjects6")]
-    public IActionResult GetSubject6(int groupId, int year)
+    public IActionResult GetSubject6(int groupId, int year, string subject6)
     {
         try
         {
             Expression<Func<Budget, bool>> condition = item => true;
-            condition = condition.And(b => b.GroupId == groupId && b.CreatedYear == year);
+            condition = condition.And(b => b.GroupId == groupId && b.CreatedYear == year && b.Subject6 == subject6);
 
             // 使用 LINQ 查詢篩選條件
             var subject6s = _budgetRepository.GetByCondition(condition)
+                                            //.Where(b => b.Subject6.StartsWith(subject6.Substring(0, 2)))  // 加入前兩位字元篩選條件
                                             .Select(b => b.Subject6)  // 只選取 Subject6 欄位
                                             .Distinct()               // 去重複
                                             .ToList();                // 轉換為 List
+                                                                      // 檢查結果是否為空
+            if (!subject6s.Any())
+            {
+                return Ok("這個組室沒有指定科目!");
+            }
 
             return Ok(subject6s);
         }

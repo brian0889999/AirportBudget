@@ -30,7 +30,7 @@ public class TokenService
 
         var claims = new List<Claim>
         {
-            new Claim("UserID", user.UserId.ToString()) // 資料庫是用No欄位識別
+            new Claim("UserID", user.UserId.ToString()) 
         };
 
         // 將用戶權限信息加入到 Claims 中

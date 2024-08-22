@@ -16,6 +16,20 @@
                                       style="width: 100%;" />
                     </v-col>
                     <v-col cols="3">
+                        <v-select label="請購人"
+                                  :items="people"
+                                  v-model="requestPersonInput"
+                                  style="width: 100%;">
+                        </v-select>
+                    </v-col>
+                    <v-col cols="3">
+                        <v-select label="支付人"
+                                  :items="people"
+                                  v-model="paymentPersonInput"
+                                  style="width: 100%;">
+                        </v-select>
+                    </v-col>
+                    <v-col cols="3">
                         <v-btn text="查詢"
                                :loading="loading"
                                @click="searchDeletedRecords"
@@ -77,8 +91,8 @@
 
 <script setup lang="ts">
 import axios from 'axios';
-import { ref, computed, onMounted } from 'vue';
-import type { BudgetAmountViewModel, SelectedDetail, SoftDeleteViewModel } from '@/types/apiInterface';
+import { ref, computed, onMounted, watch } from 'vue';
+import type { BudgetAmountViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
 //import { AuthMapping, ReverseAuthMapping, StatusMapping, ReverseStatusMapping } from '@/utils/mappings'; // 對應狀態碼到中文
 import { get, put, type ApiResponse } from '@/services/api';
 import type { VDataTable } from 'vuetify/components';
@@ -93,6 +107,8 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     const years = ref<number[]>(Array.from({ length: currentYear - 111 + 1 }, (_, i) => 111 + i)); 
     const searchYear = ref<number>(113);
     const descriptionInput = ref<string>('');
+    const requestPersonInput = ref<string>('');
+    const paymentPersonInput = ref<string>('');
     const deletedRecords = ref<BudgetAmountViewModel[]>([]);
     const headers: ReadonlyHeaders = [
         { title: '請購日期', key: 'RequestDate' },
@@ -108,10 +124,54 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
         { title: '組室別', key: 'Budget.Group.GroupName' },
         { title: '', key: 'actions', sortable: false },
     ];
+
+    const defaultUser: UserViewModel = {
+        UserId: 0,
+        Name: '',
+        Account: '',
+        Password: '',
+        RolePermissionId: 0,
+        GroupId: 0,
+        Status: false,
+        System: undefined,
+        LastPasswordChangeDate: undefined,
+        ErrCount: 0,
+        ErrDate: new Date(1990, 0, 1),
+        "Group": {
+            "GroupId": 0,
+            "GroupName": ""
+        },
+        "RolePermission": {
+            "RolePermissionId": 0,
+            "PermissionType": 0
+        }
+    };
+    //const user = ref<UserViewModel>(defaultUser);
+    const people = ref<string[]>([]);
+    const getUser = async () => {
+        const url = '/api/User';
+        try {
+            const response: ApiResponse<UserViewModel[]> = await get<UserViewModel[]>(url);
+            if (response.StatusCode === 200) {
+                //user.value = data ? data : defaultUser;
+                //user.value = response.Data ?? [];
+                people.value = ["無"].concat(response.Data?.map((person: UserViewModel) => person.Name ?? '') || []);
+                //console.log(user.value);
+            }
+            else {
+                console.error(response.Data ?? response.Message);
+            }
+        }
+        catch (error: any) {
+            console.error(error.message);
+        }
+    };
 const searchDeletedRecords = async () => {
     const url = 'api/BudgetAmount/ByDeletedRecords';
-    const data: any = { CreatedYear: searchYear.value, Description: ''};
-    if (descriptionInput) data.Description = descriptionInput.value;
+    const data: any = { createdYear: searchYear.value, description: '', requestPerson: '', paymentPerson: ''};
+    if (descriptionInput) data.description = descriptionInput.value;
+    if (requestPersonInput && requestPersonInput.value != "無") data.requestPerson = requestPersonInput.value;
+    if (paymentPersonInput && paymentPersonInput.value != "無") data.paymentPerson = paymentPersonInput.value;
     try {
         loading.value = true;
         //console.log(123);
@@ -157,6 +217,30 @@ const paginatedItems = computed(() => {
   const end: number = start + itemsPerPage;
     return deletedRecords.value.slice(start, end);
 });
+
+
+    //// 監聽 deletedRecords 的變化
+    //watch(deletedRecords, (newVal: BudgetAmountViewModel[], oldVal: BudgetAmountViewModel[]) => {
+    //    // 如果當前頁碼超出總頁數，則將頁碼重置為最後一頁
+    //    if (page.value > pageCount.value) {
+    //        page.value = pageCount.value;
+    //    }
+    //    // 如果資料縮減到空的情況，頁碼重置為1
+    //    if (newVal.length === 0) {
+    //        page.value = 1;
+    //    }
+    //});
+
+
+    //// 監聽 pageCount 或 page 變化時，paginatedItems 會自動更新
+    //watch([deletedRecords, page], () => {
+    //    // paginatedItems 會根據最新的 deletedRecords 和 page 自動更新
+    //});
+
+onMounted(async () => {
+    await getUser();
+});
+
 </script>
 
 <style scoped>
