@@ -13,7 +13,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using LinqKit;
 
-namespace AirportBudget.Server.Utilities
+namespace AirportBudget.Server.Biz
 {
     public class ExportFundExcelService(
         IGenericRepository<BudgetAmount> budgetAmountRepository,
@@ -99,7 +99,7 @@ namespace AirportBudget.Server.Utilities
                 var cell = row.CreateCell(0);
                 cell.SetCellValue(titles[i]);
                 cell.CellStyle = headerStyle;
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 0, 10)); // 合併A~K欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 0, 10)); // 合併A~K欄
                 ApplyBordersToMergedRegion(sheet, i, i, 0, 10, headerStyle);
             }
 
@@ -115,7 +115,7 @@ namespace AirportBudget.Server.Utilities
             thirdRow.HeightInPoints = 20; // 設置行高
 
             // 合併A和B欄位
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(2, 2, 0, 1));
+            sheet.AddMergedRegion(new CellRangeAddress(2, 2, 0, 1));
             var cellAB = thirdRow.CreateCell(0);
             cellAB.SetCellValue("加總 - 傳票金額");
             cellAB.CellStyle = centerAlignedStyle;
@@ -123,7 +123,7 @@ namespace AirportBudget.Server.Utilities
             ApplyBordersToMergedRegion(sheet, 2, 2, 0, 1, centerAlignedStyle);
 
             // 合併C和D欄位
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(2, 2, 2, 3));
+            sheet.AddMergedRegion(new CellRangeAddress(2, 2, 2, 3));
             var cellCD = thirdRow.CreateCell(2);
             cellCD.SetCellValue("科目代碼");
             cellCD.CellStyle = centerAlignedStyle;
@@ -265,7 +265,7 @@ namespace AirportBudget.Server.Utilities
                 // 合併系統的 "隸屬系統" 欄位
                 if (currentRow - startRowForSystem > 1)
                 {
-                    sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(startRowForSystem, currentRow - 1, 0, 0));
+                    sheet.AddMergedRegion(new CellRangeAddress(startRowForSystem, currentRow - 1, 0, 0));
                     ApplyBordersToMergedRegion(sheet, startRowForSystem, currentRow - 1, 0, 0, leftAlignedStyle);
                 }
 
@@ -273,7 +273,7 @@ namespace AirportBudget.Server.Utilities
                 var totalRow = sheet.CreateRow(currentRow++);
                 totalRow.HeightInPoints = 20; // 設置行高
                 // 合併系統合計的 A 和 B 欄位
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(currentRow - 1, currentRow - 1, 0, 1));
+                sheet.AddMergedRegion(new CellRangeAddress(currentRow - 1, currentRow - 1, 0, 1));
                 var totalTitleCell = totalRow.CreateCell(0);
                 totalTitleCell.SetCellValue($"{GetEnumDescription((UserSystemType)system)}系統合計");
                 totalTitleCell.CellStyle = leftAlignedStyle; // 系統合計靠左置中
@@ -320,7 +320,7 @@ namespace AirportBudget.Server.Utilities
             // 增加最下面的總計列
             var grandTotalRow = sheet.CreateRow(currentRow++);
             grandTotalRow.HeightInPoints = 20; // 設置行高
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(currentRow - 1, currentRow - 1, 0, 1));
+            sheet.AddMergedRegion(new CellRangeAddress(currentRow - 1, currentRow - 1, 0, 1));
             var grandTotalTitleCell = grandTotalRow.CreateCell(0);
             grandTotalTitleCell.SetCellValue("總計");
             grandTotalTitleCell.CellStyle = rightAlignedStyle; // 底部總計靠右
@@ -361,29 +361,29 @@ namespace AirportBudget.Server.Utilities
             condition = condition.And(item => item.PaymentDate >= new DateTime(westernYear, startMonth, 1) && item.PaymentDate <= new DateTime(westernYear, endMonth, DateTime.DaysInMonth(westernYear, endMonth)));
             condition = condition.And(item => item.AmountYear == year);
 
-               // 取得符合條件的 BudgetAmount 資料
-                var budgetAmounts = _budgetAmountRepository.GetByCondition(condition)
-                    .ToList();
+            // 取得符合條件的 BudgetAmount 資料
+            var budgetAmounts = _budgetAmountRepository.GetByCondition(condition)
+                .ToList();
 
-                // 取得所有符合 System 的 User 資料
-                var users = _userRepository.GetByCondition(user => user.System == system)
-                    .ToList();
+            // 取得所有符合 System 的 User 資料
+            var users = _userRepository.GetByCondition(user => user.System == system)
+                .ToList();
 
-                // 使用 LINQ Join 進行連接
-                var results = budgetAmounts
-                    .Join(users,
-                          budget => budget.RequestPerson,
-                          user => user.Name,
-                          (budget, user) => new
-                          {
-                              user.Name
-                              // 可以選擇其他需要的欄位
-                          })
-                    .Select( u => u.Name)
-                    .Distinct() // 確保結果不重複
-                    .ToList();
+            // 使用 LINQ Join 進行連接
+            var results = budgetAmounts
+                .Join(users,
+                      budget => budget.RequestPerson,
+                      user => user.Name,
+                      (budget, user) => new
+                      {
+                          user.Name
+                          // 可以選擇其他需要的欄位
+                      })
+                .Select(u => u.Name)
+                .Distinct() // 確保結果不重複
+                .ToList();
 
-                return results;
+            return results;
         }
 
         private List<ExportFundDTO> ExportFund(int year, int startMonth, int endMonth, string requestPerson, string sectionCode)
@@ -412,7 +412,7 @@ namespace AirportBudget.Server.Utilities
             {
                 Name = g.Key.Name,
                 RequestPerson = g.Key.RequestPerson,
-                Money = g.Sum(x => (x.Type == AmountType.Ordinary || x.Type == AmountType.BalanceIn) ? x.PaymentAmount : 0)
+                Money = g.Sum(x => x.Type == AmountType.Ordinary || x.Type == AmountType.BalanceIn ? x.PaymentAmount : 0)
             })
             .ToList();
 

@@ -7,9 +7,9 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 
-namespace AirportBudget.Server.Utilities
+namespace AirportBudget.Server.Biz
 {
-    public  class BudgetAmountExcelExportService
+    public class BudgetAmountExcelExportService
     {
         public byte[] ExportBudgetAmountToExcel(BudgetAmountExcelViewModel request, List<BudgetAmount> budgetAmounts)
         {
@@ -88,7 +88,7 @@ namespace AirportBudget.Server.Utilities
                 var cell = row.CreateCell(0);
                 cell.SetCellValue(titles[i]);
                 cell.CellStyle = headerStyle; // 使用標題樣式
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 0, 11)); // 合併A~L欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 0, 11)); // 合併A~L欄
                 ApplyBordersToMergedRegion(sheet, i, i, 0, 11, headerStyle); // 設置合併儲存格的框線
             }
 
@@ -98,7 +98,7 @@ namespace AirportBudget.Server.Utilities
             var cell0 = headerRow.CreateCell(0);
             cell0.SetCellValue("組室別：");
             cell0.CellStyle = boldCenteredStyle; // 使用粗體置中樣式
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(3, 3, 0, 1)); // 合併A、B欄
+            sheet.AddMergedRegion(new CellRangeAddress(3, 3, 0, 1)); // 合併A、B欄
             ApplyBordersToMergedRegion(sheet, 3, 3, 0, 1, boldCenteredStyle); // 設置合併儲存格的框線
 
             var cell2 = headerRow.CreateCell(2);
@@ -106,7 +106,7 @@ namespace AirportBudget.Server.Utilities
             cell2.CellStyle = boldCenteredStyle;
 
             // 設定5~15列的A、B欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(4, 14, 0, 1)); // 合併A、B欄
+            sheet.AddMergedRegion(new CellRangeAddress(4, 14, 0, 1)); // 合併A、B欄
             ApplyBordersToMergedRegion(sheet, 4, 14, 0, 1, boldCenteredStyle); // 設置合併儲存格的框線
 
             string[] rowTitles = ["6級(科目)", "7級(子目)", "8級(細目)", "年度預算額度(1)", "併決算數額(2)", "一般動支數額(3)", "勻出數額(4)", "(不含勻入)\" + \" \\n\" + \"一般預算餘額(5)", "(含勻入)\" + \" \\n\" + \"可用預算餘額(10)", "Title 9", "Title 10"];
@@ -127,7 +127,7 @@ namespace AirportBudget.Server.Utilities
             }
 
             // 特別處理5~8列的G欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(4, 7, 6, 6));
+            sheet.AddMergedRegion(new CellRangeAddress(4, 7, 6, 6));
             ApplyBordersToMergedRegion(sheet, 4, 7, 6, 6, wrapTextStyle); // 設置合併儲存格的框線
             for (int i = 4; i < 8; i++)
             {
@@ -150,7 +150,7 @@ namespace AirportBudget.Server.Utilities
             }
 
             // 特別處理12~13列和14~15列的C欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(11, 12, 2, 2));
+            sheet.AddMergedRegion(new CellRangeAddress(11, 12, 2, 2));
             ApplyBordersToMergedRegion(sheet, 11, 12, 2, 2, boldCenteredStyle); // 設置合併儲存格的框線
             var row12 = sheet.GetRow(11) ?? sheet.CreateRow(11);
             row12.Height = sheet.DefaultRowHeight; // 設定行高
@@ -160,7 +160,7 @@ namespace AirportBudget.Server.Utilities
             cell12.CellStyle = boldCenteredStyle;
             //row13.CreateCell(2).SetCellValue("Merged Title in C 1");
 
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(13, 14, 2, 2));
+            sheet.AddMergedRegion(new CellRangeAddress(13, 14, 2, 2));
             ApplyBordersToMergedRegion(sheet, 13, 14, 2, 2, boldCenteredStyle); // 設置合併儲存格的框線
             var row14 = sheet.GetRow(13) ?? sheet.CreateRow(13);
             row14.Height = sheet.DefaultRowHeight; // 設定行高
@@ -171,7 +171,7 @@ namespace AirportBudget.Server.Utilities
             //row15.CreateCell(2).SetCellValue("Merged Title in C 2");
 
             // 特別處理14~15列的H欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(13, 14, 7, 7));
+            sheet.AddMergedRegion(new CellRangeAddress(13, 14, 7, 7));
             ApplyBordersToMergedRegion(sheet, 13, 14, 7, 7, boldCenteredStyle); // 設置合併儲存格的框線
             var cell14H = row14.CreateCell(7);
             cell14H.SetCellValue("本科目實付小計(9)");
@@ -179,11 +179,11 @@ namespace AirportBudget.Server.Utilities
             //row15.CreateCell(7).SetCellValue("Merged Title in H");
 
             // 設定空白的欄位合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(11, 12, 7, 7));
+            sheet.AddMergedRegion(new CellRangeAddress(11, 12, 7, 7));
             ApplyBordersToMergedRegion(sheet, 11, 12, 7, 7, boldCenteredStyle); // 設置合併儲存格的框線
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(11, 12, 8, 13));
+            sheet.AddMergedRegion(new CellRangeAddress(11, 12, 8, 13));
             ApplyBordersToMergedRegion(sheet, 11, 12, 8, 13, boldCenteredStyle); // 設置合併儲存格的框線
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(4, 7, 7, 13));
+            sheet.AddMergedRegion(new CellRangeAddress(4, 7, 7, 13));
             ApplyBordersToMergedRegion(sheet, 4, 7, 7, 13, wrapTextStyle); // 設置合併儲存格的框線
 
             // 設定合併儲存格範圍內的儲存格樣式
@@ -204,13 +204,13 @@ namespace AirportBudget.Server.Utilities
             var cell16C = row16.CreateCell(2);
             cell16C.SetCellValue("摘要");
             cell16C.CellStyle = boldCenteredStyle;
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(15, 15, 2, 4)); // 合併C~E欄
+            sheet.AddMergedRegion(new CellRangeAddress(15, 15, 2, 4)); // 合併C~E欄
             ApplyBordersToMergedRegion(sheet, 15, 15, 2, 4, boldCenteredStyle); // 設置合併儲存格的框線
 
             var cell16F = row16.CreateCell(5);
             cell16F.SetCellValue("請購金額");
             cell16F.CellStyle = boldCenteredStyle;
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(15, 15, 5, 6)); // 合併F~G欄
+            sheet.AddMergedRegion(new CellRangeAddress(15, 15, 5, 6)); // 合併F~G欄
             ApplyBordersToMergedRegion(sheet, 15, 15, 5, 6, boldCenteredStyle); // 設置合併儲存格的框線
 
             // 設定第16列其他欄位的不同標題
@@ -232,7 +232,7 @@ namespace AirportBudget.Server.Utilities
             //sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(4, 7, 3, 5)); // 合併D~F欄
             for (int i = 4; i < 8; i++)
             {
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 3, 5)); // 合併D~F欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 3, 5)); // 合併D~F欄
                 ApplyBordersToMergedRegion(sheet, i, i, 3, 5, boldCenteredStyle); // 設置合併儲存格的框線
                 var row = sheet.GetRow(i);
                 row.Height = sheet.DefaultRowHeight; // 設定行高
@@ -263,7 +263,7 @@ namespace AirportBudget.Server.Utilities
             // 特別處理9~11列的D~F欄合併
             for (int i = 8; i < 11; i++)
             {
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 3, 6)); // 合併D~G欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 3, 6)); // 合併D~G欄
                 ApplyBordersToMergedRegion(sheet, i, i, 3, 6, currencyCenteredStyle); // 設置合併儲存格的框線
                 var row = sheet.GetRow(i);
                 row.Height = sheet.DefaultRowHeight; // 設定行高
@@ -284,7 +284,7 @@ namespace AirportBudget.Server.Utilities
             };
 
             // 特別處理12~13列和14~15列的D欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(11, 12, 3, 6));
+            sheet.AddMergedRegion(new CellRangeAddress(11, 12, 3, 6));
             ApplyBordersToMergedRegion(sheet, 11, 12, 3, 6, currencyCenteredStyle); // 設置合併儲存格的框線
             //var row12 = sheet.GetRow(11) ?? sheet.CreateRow(11);
             var row12D = row12.CreateCell(3);
@@ -292,7 +292,7 @@ namespace AirportBudget.Server.Utilities
             row12D.SetCellValue(Convert.ToDouble(request.UseBudget));
             row12D.CellStyle = currencyCenteredStyle; // 設置為貨幣格式
 
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(13, 14, 3, 6));
+            sheet.AddMergedRegion(new CellRangeAddress(13, 14, 3, 6));
             ApplyBordersToMergedRegion(sheet, 13, 14, 3, 6, currencyCenteredStyle); // 設置合併儲存格的框線
             //var row14 = sheet.GetRow(13) ?? sheet.CreateRow(13);
             var row14D = row14.CreateCell(3);
@@ -303,7 +303,7 @@ namespace AirportBudget.Server.Utilities
             // 設置9~11列的I~N欄合併
             for (int i = 8; i < 11; i++)
             {
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 8, 13)); // 合併I~N欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 8, 13)); // 合併I~N欄
                 ApplyBordersToMergedRegion(sheet, i, i, 8, 13, currencyCenteredStyle); // 設置合併儲存格的框線
                 var row = sheet.GetRow(i);
                 row.Height = sheet.DefaultRowHeight; // 設定行高
@@ -324,7 +324,7 @@ namespace AirportBudget.Server.Utilities
             }
 
             // 特別處理14~15列的I~N欄合併
-            sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(13, 14, 8, 13)); // 合併I~N欄
+            sheet.AddMergedRegion(new CellRangeAddress(13, 14, 8, 13)); // 合併I~N欄
             ApplyBordersToMergedRegion(sheet, 13, 14, 8, 13, currencyCenteredStyle); // 設置合併儲存格的框線
             var row15 = sheet.GetRow(13) ?? sheet.CreateRow(13);
             row15.Height = sheet.DefaultRowHeight; // 設定行高
@@ -364,7 +364,7 @@ namespace AirportBudget.Server.Utilities
                 typeCell.CellStyle = boldCenteredStyle;
 
                 // 設定C~E欄位合併
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(16 + i, 16 + i, 2, 4));
+                sheet.AddMergedRegion(new CellRangeAddress(16 + i, 16 + i, 2, 4));
                 ApplyBordersToMergedRegion(sheet, 16 + i, 16 + i, 2, 4, boldCenteredStyle); // 設置合併儲存格的框線
                 var descCell = row.CreateCell(2);
                 descCell.SetCellValue(budgetAmount.Description);
@@ -372,7 +372,7 @@ namespace AirportBudget.Server.Utilities
 
 
                 // 設定F~G欄位合併
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(16 + i, 16 + i, 5, 6));
+                sheet.AddMergedRegion(new CellRangeAddress(16 + i, 16 + i, 5, 6));
                 ApplyBordersToMergedRegion(sheet, 16 + i, 16 + i, 5, 6, numberRightAlignedStyle); // 設置合併儲存格的框線
                 var requestAmountCell = row.CreateCell(5);
                 requestAmountCell.SetCellValue(Convert.ToDouble(budgetAmount.RequestAmount));

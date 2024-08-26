@@ -16,9 +16,9 @@ using AutoMapper;
 using NPOI.SS.Formula.Functions;
 //using System.Text.RegularExpressions;
 
-namespace AirportBudget.Server.Utilities
+namespace AirportBudget.Server.Biz
 {
-    public  class ExportBudgetExcelService
+    public class ExportBudgetExcelService
     {
         private readonly IGenericRepository<Budget> _budgetRepository;
         private readonly IGenericRepository<BudgetAmount> _budgetAmountRepository;
@@ -39,7 +39,7 @@ namespace AirportBudget.Server.Utilities
         {
             IWorkbook workbook = new XSSFWorkbook();
             ISheet sheet = workbook.CreateSheet("Sheet1");
-            
+
             sheet.DefaultRowHeight = 40 * 30;
 
             // 定義每一欄的寬度
@@ -127,7 +127,7 @@ namespace AirportBudget.Server.Utilities
                 var row = sheet.CreateRow(i);
                 row.Height = 40 * 30; // 設定行高
                                       // 合併儲存格範圍
-                sheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(i, i, 0, 11)); // 合併A~L欄
+                sheet.AddMergedRegion(new CellRangeAddress(i, i, 0, 11)); // 合併A~L欄
 
                 var firstCell = row.CreateCell(0);
                 firstCell.SetCellValue(titles[i]);
@@ -427,7 +427,7 @@ namespace AirportBudget.Server.Utilities
         {
             var result = _groupRepository.GetAll().ToList();
 
-            return (result);
+            return result;
         }
 
         private List<string> GetSubject6(int groupId, int year)
@@ -486,9 +486,9 @@ namespace AirportBudget.Server.Utilities
                    FinalBudgetAmount = g.Key.FinalBudgetAmount,
                    General = g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0),
                    Out = g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0),
-                   UseBudget = (g.Key.AnnualBudgetAmount -
-                               g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0) - 
-                               g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0)) + g.Key.FinalBudgetAmount,
+                   UseBudget = g.Key.AnnualBudgetAmount -
+                               g.Sum(b => b.Type == AmountType.BalanceOut ? b.RequestAmount : 0) -
+                               g.Sum(b => b.Type == AmountType.Ordinary ? b.RequestAmount : 0) + g.Key.FinalBudgetAmount,
                    In = g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0),
                    InActual = g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0),
                    InBalance = g.Sum(b => b.Type == AmountType.BalanceIn ? b.RequestAmount : 0) - g.Sum(b => b.Type == AmountType.BalanceIn ? b.PaymentAmount : 0),

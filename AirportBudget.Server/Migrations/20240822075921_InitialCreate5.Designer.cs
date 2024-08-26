@@ -4,6 +4,7 @@ using AirportBudget.Server.Datas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AirportBudget.Server.Migrations
 {
     [DbContext(typeof(AirportBudgetDbContext))]
-    partial class AirportBudgetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240822075921_InitialCreate5")]
+    partial class InitialCreate5
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -145,16 +148,19 @@ namespace AirportBudget.Server.Migrations
                     b.ToTable("BudgetAmount");
                 });
 
-            modelBuilder.Entity("AirportBudget.Server.Models.EntityLog", b =>
+            modelBuilder.Entity("AirportBudget.Server.Models.BudgetAmountLog", b =>
                 {
-                    b.Property<int>("EntityLogId")
+                    b.Property<int>("LogId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EntityLogId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
 
                     b.Property<int>("ActionType")
                         .HasMaxLength(50)
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BudgetAmountId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ChangeTime")
@@ -165,22 +171,17 @@ namespace AirportBudget.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("EntityId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EntityType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Values")
-                        .IsRequired()
+                    b.Property<string>("NewValues")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("EntityLogId");
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasIndex("EntityLogId")
-                        .HasDatabaseName("IX_EntityLogId");
+                    b.HasKey("LogId");
 
-                    b.ToTable("EntityLog");
+                    b.HasIndex("BudgetAmountId");
+
+                    b.ToTable("BudgetAmountLog");
                 });
 
             modelBuilder.Entity("AirportBudget.Server.Models.Group", b =>
@@ -292,6 +293,15 @@ namespace AirportBudget.Server.Migrations
                     b.Navigation("Budget");
                 });
 
+            modelBuilder.Entity("AirportBudget.Server.Models.BudgetAmountLog", b =>
+                {
+                    b.HasOne("AirportBudget.Server.Models.BudgetAmount", "BudgetAmount")
+                        .WithMany("BudgetAmountLogs")
+                        .HasForeignKey("BudgetAmountId");
+
+                    b.Navigation("BudgetAmount");
+                });
+
             modelBuilder.Entity("AirportBudget.Server.Models.User", b =>
                 {
                     b.HasOne("AirportBudget.Server.Models.Group", "Group")
@@ -314,6 +324,11 @@ namespace AirportBudget.Server.Migrations
             modelBuilder.Entity("AirportBudget.Server.Models.Budget", b =>
                 {
                     b.Navigation("BudgetAmounts");
+                });
+
+            modelBuilder.Entity("AirportBudget.Server.Models.BudgetAmount", b =>
+                {
+                    b.Navigation("BudgetAmountLogs");
                 });
 
             modelBuilder.Entity("AirportBudget.Server.Models.Group", b =>

@@ -29,19 +29,20 @@
                                   style="width: 100%;">
                         </v-select>
                     </v-col>
-                    <v-col cols="3">
-                        <v-btn text="查詢"
-                               :loading="loading"
-                               @click="searchDeletedRecords"
-                               color="primary"
-                               class="mt-2"
-                               size="large">
-                            <template v-slot:loader>
-                                <v-progress-circular indeterminate></v-progress-circular>
-                            </template>
-                        </v-btn>
-                    </v-col>
+
                 </v-row>
+            </v-col>
+            <v-col cols="3">
+                <v-btn text="查詢"
+                       :loading="loading"
+                       @click="searchDeletedRecords"
+                       color="primary"
+                       class="mt-2"
+                       size="large">
+                    <template v-slot:loader>
+                        <v-progress-circular indeterminate></v-progress-circular>
+                    </template>
+                </v-btn>
             </v-col>
         </v-row>
 

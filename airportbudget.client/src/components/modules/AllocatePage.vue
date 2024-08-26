@@ -42,7 +42,7 @@
                                     <v-select v-model="AllocateForm.RequestPerson"
                                               :items="people"
                                               label="請購人"
-                                              :rules="[rules.required]"></v-select>
+                                              :rules="[rules.requestPersonRequired]"></v-select>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                     <v-select v-model="AllocateForm.AmountYear"
@@ -288,7 +288,9 @@ const toUTC = (date: Date) => {
         //lessThanOrEqualToPurchaseMoney: (value: number) => {
         //    return value <= limitPurchaseMoney.value || '實付金額不能大於請購金額';
         //}
-
+        requestPersonRequired: (value: string) => {
+            return value !== "無" || "請購人不能為 '無'";
+        },
         subject6_inRequired: (value: string) => {
             return value !== "無" || "六級(科目)不能為 '無'";
         },
@@ -330,7 +332,7 @@ const toUTC = (date: Date) => {
             const response: ApiResponse<UserViewModel[]> = await get<UserViewModel[]>(url);  // 假設有一個 API 提供請購人資料
             //console.log('Data:', response.Data);
             if (response.StatusCode == 200) {
-                people.value = response.Data?.map((person: UserViewModel) => person.Name ?? '') || [];
+                people.value = ["無"].concat(response.Data?.map((person: UserViewModel) => person.Name ?? '') || []);
             }
         } catch (error) {
             console.error('Failed to fetch people:', error);
@@ -492,6 +494,7 @@ const toUTC = (date: Date) => {
         btnLoading.value = true;
         const { valid } = await AllocateFormRef.value?.validate();
         if (!valid) { btnLoading.value = false; return; };
+        if (AllocateForm.value.PaymentPerson == '無') AllocateForm.value.PaymentPerson = '';
         if (AllocateForm.value.Subject8_in == '無') AllocateForm.value.Subject8_in = ''; // 如果Subject8沒有值,設定為空值
         const dataOut = {
             ...AllocateForm.value,

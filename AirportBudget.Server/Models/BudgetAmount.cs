@@ -53,5 +53,6 @@ namespace AirportBudget.Server.Models
         public int? LinkedBudgetAmountId { get; set; }
 
         public  Budget? Budget { get; set; }
+
     }
 }

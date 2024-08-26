@@ -302,7 +302,7 @@
         /*{ title: '預算名稱', key: '', value: 'budget' },*/
         { title: '', key: 'action' },
         { title: '預算名稱', key: 'BudgetName', width: '6%' },
-        { title: '組室別', key: 'GroupName' },
+        { title: '組室別', key: 'GroupName', width: '6%' },
         { title: '科目(6級)', key: 'Subject6' },
         { title: '科目(7級)', key: 'Subject7' },
         { title: '科目(8級)', key: 'Subject8', width: '6%' },
@@ -752,7 +752,7 @@
         if (budgetItem) {
             await handleBudgetClick(budgetItem);
         }
-        console.log('Created:', newItem);
+        //console.log('Created:', newItem);
     };
 
     const cancelEdit = () => {

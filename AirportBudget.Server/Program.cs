@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using AirportBudget.Server.Services;
 using System.Text;
+using AirportBudget.Server.Biz;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +69,9 @@ builder.Services.AddScoped<DESEncryptionUtility>();
 builder.Services.AddScoped<BudgetAmountExcelExportService>();
 builder.Services.AddScoped<ExportBudgetExcelService>();
 builder.Services.AddScoped<ExportFundExcelService>();
+
+// µù¥U IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContext<AirportBudgetDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("AirportBudget")));

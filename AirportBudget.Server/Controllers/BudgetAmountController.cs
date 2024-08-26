@@ -21,8 +21,11 @@ using LinqKit;
 using AirportBudget.Server.ViewModels;
 using AirportBudget.Server.Enums;
 using NPOI.SS.UserModel;
-using AirportBudget.Server.Utilities;
 using NPOI.SS.Util;
+using NPOI.POIFS.FileSystem;
+using System.Text.Json;
+using AirportBudget.Server.Biz;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 
 
@@ -33,22 +36,22 @@ namespace AirportBudget.Server.Controllers;
 [Route("api/[controller]")]
 public class BudgetAmountController(
     IGenericRepository<BudgetAmount> budgetAmountRepository,
-    IGenericRepository<Budget> budgetRepository,
+    IGenericRepository<EntityLog> EntityLogRepository,
     IGenericRepository<User> userRepository,
     IMapper mapper,
-    AirportBudgetDbContext context,
     BudgetAmountExcelExportService budgetAmountExcelExportService,
     ExportBudgetExcelService exportBudgetExcelService,
-    ExportFundExcelService exportFundExcelService) : ControllerBase
+    ExportFundExcelService exportFundExcelService,
+    IHttpContextAccessor httpContextAccessor) : ControllerBase
 {
     private readonly IGenericRepository<BudgetAmount> _budgetAmountRepository = budgetAmountRepository;
-    private readonly IGenericRepository<Budget> _budgetRepository = budgetRepository;
+    private readonly IGenericRepository<EntityLog> _EntityLogRepository = EntityLogRepository;
     private readonly IGenericRepository<User> _userRepository = userRepository;
     private readonly IMapper _mapper = mapper;
-    private readonly AirportBudgetDbContext _context = context;
     private readonly BudgetAmountExcelExportService _budgetAmountExcelExportService = budgetAmountExcelExportService;
     private readonly ExportBudgetExcelService _exportBudgetExcelService = exportBudgetExcelService;
     private readonly ExportFundExcelService _exportFundExcelService = exportFundExcelService;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
     /// <summary>
     /// Groups的預算資料查詢
@@ -86,7 +89,7 @@ public class BudgetAmountController(
     /// </summary>
     /// <returns>查詢結果</returns>
     [HttpGet("SelectedDetail")]
-    public IActionResult GetDetailData(int BudgetId, string? BudgetName = null, int? Year = null, int? GroupId = null, string? Description = null, int? RequestAmountStart = null, int? RequestAmountEnd = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
+    public IActionResult GetDetailData(int BudgetId, string? Description = null, int? RequestAmountStart = null, int? RequestAmountEnd = null) // 前端傳Year值,後端回傳符合Year值的工務組資料
     {
         try
         {
@@ -150,6 +153,20 @@ public class BudgetAmountController(
             BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
             _budgetAmountRepository.Add(BudgetAmount);
 
+            // log
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+            var log = new EntityLog
+            {
+                EntityId = BudgetAmount.BudgetAmountId,
+                EntityType = MyEntityType.BudgetAmount,
+                ActionType = ActionType.Insert,
+                ChangedBy = userId,
+                ChangeTime = DateTime.Now,
+                Values = JsonSerializer.Serialize(BudgetAmount)
+            };
+
+            _EntityLogRepository.Add(log);
+
             return Ok("Record added successfully");
         }
         catch (Exception ex)
@@ -187,6 +204,31 @@ public class BudgetAmountController(
             _budgetAmountRepository.Update(firstEntity);
             _budgetAmountRepository.Update(secondEntity);
 
+            // log
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+            var firstLog = new EntityLog
+            {
+                EntityId = firstEntity.BudgetAmountId,
+                EntityType = MyEntityType.BudgetAmount,
+                ActionType = ActionType.Insert,
+                ChangedBy = userId,
+                ChangeTime = DateTime.Now,
+                Values = JsonSerializer.Serialize(firstEntity)
+            };
+
+            var secondLog = new EntityLog
+            {
+                EntityId = secondEntity.BudgetAmountId,
+                EntityType = MyEntityType.BudgetAmount,
+                ActionType = ActionType.Insert,
+                ChangedBy = userId,
+                ChangeTime = DateTime.Now,
+                Values = JsonSerializer.Serialize(secondEntity)
+            };
+
+            _EntityLogRepository.Add(firstLog);
+            _EntityLogRepository.Add(secondLog);
+
             return Ok("Record added successfully");
         }
         catch (Exception ex)
@@ -194,32 +236,6 @@ public class BudgetAmountController(
             return StatusCode(500, $"Internal server error: {ex}");
         }
     }
-
-    //[HttpPost]
-    //public async Task<IActionResult> Post([FromBody] BudgetAmount request)
-    //{
-    //    try
-    //    {
-    //        // 取得當年民國年分
-    //        //var currentYear = DateTime.Now.Year - 1911;
-    //        //request.Year = currentYear;
-    //        // 使用 AutoMapper 將 ViewModel 映射到 Model
-    //        BudgetAmount BudgetAmount1 = _mapper.Map<BudgetAmount>(request);
-    //        BudgetAmount BudgetAmount2 = _mapper.Map<BudgetAmount>(request);
-    //        // 檢查 RequestPerson 和 PaymentPerson 欄位，若為 null 則存空值
-    //        BudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-    //        BudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-    //        _budgetAmountRepository.Add(BudgetAmount);
-    //        BudgetAmount1.AmountSerialNumber = BudgetAmount2.AmountSerialNumber;
-
-    //        //update
-    //        return Ok("Record added successfully");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Internal server error: {ex}");
-    //    }
-    //}
 
     /// <summary>
     /// 更新細項
@@ -237,86 +253,14 @@ public class BudgetAmountController(
             {
                 condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
             }
-            //else
-            //{   // Type為勻出入,跑這邊的程式碼
-            //    // 查找第一筆資料
-            //    condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
-            //    var firstBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
-
-            //    if (firstBudgetAmount == null)
-            //    {
-            //        return NotFound("First record not found");
-            //    }
-
-            //    // 查找關聯的第二筆資料
-            //    Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
-            //    var secondBudgetAmount = _budgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
-
-            //    if (secondBudgetAmount == null)
-            //    {
-            //        return NotFound("Linked record not found");
-            //    }
-
-            //    // 更新第一筆資料
-            //    BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, firstBudgetAmount);
-            //    updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
-            //    updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
-            //    updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
-            //    updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            //    updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            //    _budgetAmountRepository.Update(updatedFirstBudgetAmount);
-
-            //    // 更新第二筆資料
-            //    BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
-            //    updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
-            //    updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
-            //    updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
-            //    updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            //    updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            //    _budgetAmountRepository.Update(updatedSecondBudgetAmount);
-
-            //    return Ok("Records updated successfully");
-            //}
-
-            // Type為一般,跑這邊的程式碼
-            var ExistBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
-            if (ExistBudgetAmount == null)
+            else
             {
-                return NotFound("Record not found");
-            }
-            // 將 ViewModel 映射到實體模型
-            BudgetAmount updatedBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, ExistBudgetAmount);
-            // 檢查 People 和 People1 欄位，若為 null 則存空值
-            ExistBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            ExistBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _budgetAmountRepository.Update(updatedBudgetAmount);
-            return Ok("Record updated successfully");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex}");
-        }
-    }
-
-
-    /// <summary>
-    /// 更新勻出入細項
-    /// </summary>
-    /// <returns>更新結果</returns>
-    [HttpPut("ByUpdateAllocate")]
-    public IActionResult DoAllocateUpdate([FromBody] BudgetAmount request)
-    {
-        try
-        {      
-                if(request.Type == AmountType.Ordinary)
+                if (request.Type == AmountType.Ordinary)
                 {
-                return BadRequest("非勻出入資料");
+                    return BadRequest("非勻出入資料");
                 }
 
-                 request.Budget = null;
-                 Expression<Func<BudgetAmount, bool>> condition = item => true;
-
-                // Type為勻出入,跑這邊的程式碼
+                // Type為勻出入(2,3),跑這邊的程式碼
                 // 查找第一筆資料
                 condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
                 var firstBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
@@ -335,82 +279,237 @@ public class BudgetAmountController(
                     return NotFound("Linked record not found");
                 }
 
-            //// 使用新的實體進行更新
-            //BudgetAmount updatedFirstBudgetAmount = new BudgetAmount
-            //{
-            //    BudgetAmountId = firstBudgetAmount.BudgetAmountId,
-            //    LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId,
-            //    BudgetId = firstBudgetAmount.BudgetId,
-            //    Type = firstBudgetAmount.Type,
-            //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
-            //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
-            //    // 其他屬性依需求映射
-            //};
+                // 使用新的實體進行更新
+                BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount>(request);
+                updatedFirstBudgetAmount.BudgetAmountId = firstBudgetAmount.BudgetAmountId;
+                updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+                updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+                updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+                updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+                updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+                _budgetAmountRepository.Update(updatedFirstBudgetAmount);
 
-            //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
-
-            //BudgetAmount updatedSecondBudgetAmount = new BudgetAmount
-            //{
-            //    BudgetAmountId = secondBudgetAmount.BudgetAmountId,
-            //    LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId,
-            //    BudgetId = secondBudgetAmount.BudgetId,
-            //    Type = secondBudgetAmount.Type,
-            //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
-            //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
-            //    // 其他屬性依需求映射
-            //};
-
-            //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
-
-            // 使用新的實體進行更新
-            BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount>(request);
-            updatedFirstBudgetAmount.BudgetAmountId = firstBudgetAmount.BudgetAmountId;
-            updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
-            updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
-            updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
-            updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _budgetAmountRepository.Update(updatedFirstBudgetAmount);
-
-            BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount>(request);
-            updatedSecondBudgetAmount.BudgetAmountId = secondBudgetAmount.BudgetAmountId;
-            updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
-            updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
-            updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
-            updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
-            _budgetAmountRepository.Update(updatedSecondBudgetAmount);
-
-            //// 更新第一筆資料
-            //_context.Entry(firstBudgetAmount).State = EntityState.Detached;// 將實體從上下文中分離
-            //BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, firstBudgetAmount);
-            //updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
-            //updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
-            //updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
-            //updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            //updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+                BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount>(request);
+                updatedSecondBudgetAmount.BudgetAmountId = secondBudgetAmount.BudgetAmountId;
+                updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+                updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+                updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+                updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+                updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+                _budgetAmountRepository.Update(updatedSecondBudgetAmount);
 
 
-            //// 更新第二筆資料
-            //_context.Entry(secondBudgetAmount).State = EntityState.Detached;
-            //BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
-            //updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
-            //updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
-            //updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
-            //updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
-            //updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+                // 將原始資料與更新後的資料序列化為 JSON 字串
+                var originalfirstBudgetAmount = JsonSerializer.Serialize(firstBudgetAmount);
+                var updatedFirstBudgetAmountJson = JsonSerializer.Serialize(updatedFirstBudgetAmount);
 
-            //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
-            //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
+                // 比較原始資料與更新後的資料是否不同
+                if (originalfirstBudgetAmount != updatedFirstBudgetAmountJson)
+                {
+                    // 如果資料有變動，執行更新操作並記錄 log
+                    //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
 
-            return Ok("Records updated successfully");
-            
+                    // log
+                    var logUserId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                    var firstLog = new EntityLog
+                    {
+                        EntityId = updatedFirstBudgetAmount.BudgetAmountId,
+                        EntityType = MyEntityType.BudgetAmount,
+                        ActionType = ActionType.Update,
+                        ChangedBy = logUserId,
+                        ChangeTime = DateTime.Now,
+                        Values = originalfirstBudgetAmount // 存更新前的值
+                    };
+
+                    var secondLog = new EntityLog
+                    {
+                        EntityId = updatedSecondBudgetAmount.BudgetAmountId,
+                        EntityType = MyEntityType.BudgetAmount,
+                        ActionType = ActionType.Update,
+                        ChangedBy = logUserId,
+                        ChangeTime = DateTime.Now,
+                        Values = JsonSerializer.Serialize(secondBudgetAmount) // 存更新前的值
+                    };
+
+                    _EntityLogRepository.Add(firstLog);
+                    _EntityLogRepository.Add(secondLog);
+
+                    return Ok("Record updated successfully");
+                }
+                else
+                {
+                    // 資料無變動，不進行更新和記錄 log
+                    return Ok("No changes detected, update skipped");
+                }
+            }
+
+            // Type為一般(1),跑這邊的程式碼
+            var ExistBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault(); // 這邊不能用find(AmountSerialNumber不是PK)
+            if (ExistBudgetAmount == null)
+            {
+                return NotFound("Record not found");
+            }
+            // 將 ViewModel 映射到實體模型
+            BudgetAmount updatedBudgetAmount = _mapper.Map<BudgetAmount>(request);
+            updatedBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            updatedBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            //BudgetAmount updatedBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, ExistBudgetAmount);
+            //// 檢查 People 和 People1 欄位，若為 null 則存空值
+            //ExistBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+            //ExistBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+            _budgetAmountRepository.Update(updatedBudgetAmount);
+
+            // 將原始資料與更新後的資料序列化為 JSON 字串
+            var originalExistBudgetAmountJson = JsonSerializer.Serialize(ExistBudgetAmount);
+            var updatedBudgetAmountJson = JsonSerializer.Serialize(updatedBudgetAmount);
+
+            // 比較原始資料與更新後的資料是否不同
+            if (originalExistBudgetAmountJson != updatedBudgetAmountJson)
+            {
+                // 如果資料有變動，執行更新操作並記錄 log
+                _budgetAmountRepository.Update(updatedBudgetAmount);
+
+                // log
+                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                var log = new EntityLog
+                {
+                    EntityId = updatedBudgetAmount.BudgetAmountId,
+                    EntityType = MyEntityType.BudgetAmount,
+                    ActionType = ActionType.Update,
+                    ChangedBy = userId,
+                    ChangeTime = DateTime.Now,
+                    Values = originalExistBudgetAmountJson // 存更新前的值
+                };
+
+                _EntityLogRepository.Add(log);
+
+                return Ok("Record updated successfully");
+            }
+            else
+            {
+                // 資料無變動，不進行更新和記錄 log
+                return Ok("No changes detected, update skipped");
+            }
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Internal server error: {ex}");
         }
     }
+
+
+    ///// <summary>
+    ///// 更新勻出入細項
+    ///// </summary>
+    ///// <returns>更新結果</returns>
+    //[HttpPut("ByUpdateAllocate")]
+    //public IActionResult DoAllocateUpdate([FromBody] BudgetAmount request)
+    //{
+    //    try
+    //    {      
+    //            if(request.Type == AmountType.Ordinary)
+    //            {
+    //            return BadRequest("非勻出入資料");
+    //            }
+
+    //             request.Budget = null;
+    //             Expression<Func<BudgetAmount, bool>> condition = item => true;
+
+    //            // Type為勻出入,跑這邊的程式碼
+    //            // 查找第一筆資料
+    //            condition = condition.And(BudgetAmount => BudgetAmount.BudgetAmountId == request.BudgetAmountId);
+    //            var firstBudgetAmount = _budgetAmountRepository.GetByCondition(condition).AsNoTracking().FirstOrDefault();
+
+    //            if (firstBudgetAmount == null)
+    //            {
+    //                return NotFound("First record not found");
+    //            }
+
+    //            // 查找關聯的第二筆資料
+    //            Expression<Func<BudgetAmount, bool>> linkedCondition = item => item.BudgetAmountId == firstBudgetAmount.LinkedBudgetAmountId;
+    //            var secondBudgetAmount = _budgetAmountRepository.GetByCondition(linkedCondition).AsNoTracking().FirstOrDefault();
+
+    //            if (secondBudgetAmount == null)
+    //            {
+    //                return NotFound("Linked record not found");
+    //            }
+
+    //        //// 使用新的實體進行更新
+    //        //BudgetAmount updatedFirstBudgetAmount = new BudgetAmount
+    //        //{
+    //        //    BudgetAmountId = firstBudgetAmount.BudgetAmountId,
+    //        //    LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId,
+    //        //    BudgetId = firstBudgetAmount.BudgetId,
+    //        //    Type = firstBudgetAmount.Type,
+    //        //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
+    //        //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
+    //        //    // 其他屬性依需求映射
+    //        //};
+
+    //        //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
+
+    //        //BudgetAmount updatedSecondBudgetAmount = new BudgetAmount
+    //        //{
+    //        //    BudgetAmountId = secondBudgetAmount.BudgetAmountId,
+    //        //    LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId,
+    //        //    BudgetId = secondBudgetAmount.BudgetId,
+    //        //    Type = secondBudgetAmount.Type,
+    //        //    RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson,
+    //        //    PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson,
+    //        //    // 其他屬性依需求映射
+    //        //};
+
+    //        //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+    //        // 使用新的實體進行更新
+    //        BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount>(request);
+    //        updatedFirstBudgetAmount.BudgetAmountId = firstBudgetAmount.BudgetAmountId;
+    //        updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+    //        updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+    //        updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+    //        updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+    //        updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+    //        _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+
+    //        BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount>(request);
+    //        updatedSecondBudgetAmount.BudgetAmountId = secondBudgetAmount.BudgetAmountId;
+    //        updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+    //        updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+    //        updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+    //        updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+    //        updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+    //        _budgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+    //        //// 更新第一筆資料
+    //        //_context.Entry(firstBudgetAmount).State = EntityState.Detached;// 將實體從上下文中分離
+    //        //BudgetAmount updatedFirstBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, firstBudgetAmount);
+    //        //updatedFirstBudgetAmount.LinkedBudgetAmountId = firstBudgetAmount.LinkedBudgetAmountId;
+    //        //updatedFirstBudgetAmount.BudgetId = firstBudgetAmount.BudgetId;
+    //        //updatedFirstBudgetAmount.Type = firstBudgetAmount.Type;
+    //        //updatedFirstBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+    //        //updatedFirstBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+
+
+    //        //// 更新第二筆資料
+    //        //_context.Entry(secondBudgetAmount).State = EntityState.Detached;
+    //        //BudgetAmount updatedSecondBudgetAmount = _mapper.Map<BudgetAmount, BudgetAmount>(request, secondBudgetAmount);
+    //        //updatedSecondBudgetAmount.LinkedBudgetAmountId = secondBudgetAmount.LinkedBudgetAmountId;
+    //        //updatedSecondBudgetAmount.BudgetId = secondBudgetAmount.BudgetId;
+    //        //updatedSecondBudgetAmount.Type = secondBudgetAmount.Type;
+    //        //updatedSecondBudgetAmount.RequestPerson = request.RequestPerson == "無" ? string.Empty : request.RequestPerson;
+    //        //updatedSecondBudgetAmount.PaymentPerson = request.PaymentPerson == "無" ? string.Empty : request.PaymentPerson;
+
+    //        //_budgetAmountRepository.Update(updatedFirstBudgetAmount);
+    //        //_budgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+    //        return Ok("Records updated successfully");
+            
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, $"Internal server error: {ex}");
+    //    }
+    //}
 
 
     /// <summary>
@@ -430,33 +529,83 @@ public class BudgetAmountController(
                     return BadRequest("No request");
                 }
 
-                var BudgetAmount1 = _budgetAmountRepository.GetById(request.BudgetAmountId);
-                var BudgetAmount2 = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
-                if (BudgetAmount1 == null)
+                var updatedFirstBudgetAmount = _budgetAmountRepository.GetById(request.BudgetAmountId);
+                var updatedSecondBudgetAmount = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                if (updatedFirstBudgetAmount == null)
                 {
                     return NotFound("not exist");
                 }
-                if (BudgetAmount2 == null)
+                if (updatedSecondBudgetAmount == null)
                 {
-                    return NotFound("not exist");
+                    updatedFirstBudgetAmount!.IsValid = false;
+                    _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+                    return Ok("LinkedBudgetAmountId is not exist");
                 }
 
+                var originalFirstBudgetAmount = JsonSerializer.Serialize(updatedFirstBudgetAmount);
+                var originalSecondBudgetAmount = JsonSerializer.Serialize(updatedSecondBudgetAmount);
+
                 // 更新Status欄位
-                BudgetAmount1!.IsValid = false;
-                BudgetAmount2!.IsValid = false;
-                _budgetAmountRepository.Update(BudgetAmount1);
-                _budgetAmountRepository.Update(BudgetAmount2);
+                updatedFirstBudgetAmount!.IsValid = false;
+                updatedSecondBudgetAmount!.IsValid = false;
+                _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+                _budgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+                // log
+                var logUserId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                var firstLog = new EntityLog
+                {
+                    EntityId = updatedFirstBudgetAmount.BudgetAmountId,
+                    EntityType = MyEntityType.BudgetAmount,
+                    ActionType = ActionType.Update,
+                    ChangedBy = logUserId,
+                    ChangeTime = DateTime.Now,
+                    Values = originalFirstBudgetAmount
+                };
+
+                var secondLog = new EntityLog
+                {
+                    EntityId = updatedSecondBudgetAmount.BudgetAmountId,
+                    EntityType = MyEntityType.BudgetAmount,
+                    ActionType = ActionType.Update,
+                    ChangedBy = logUserId,
+                    ChangeTime = DateTime.Now,
+                    Values = originalSecondBudgetAmount
+                };
+
+                _EntityLogRepository.Add(firstLog);
+                _EntityLogRepository.Add(secondLog);
+
                 return Ok("success");
             }
+
             //var BudgetAmount = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.ID1 == request.ID1).FirstOrDefault();
-            var BudgetAmount = _budgetAmountRepository.GetById(request!.BudgetAmountId);
-            if (BudgetAmount == null)
+            var updatedBudgetAmount = _budgetAmountRepository.GetById(request!.BudgetAmountId);
+            if (updatedBudgetAmount == null)
             {
                 return NotFound("not exist");
             }
+
+            var originalBudgetAmountLog = JsonSerializer.Serialize(updatedBudgetAmount);
+
             // 更新Status欄位
-            BudgetAmount.IsValid = false;
-            _budgetAmountRepository.Update(BudgetAmount);
+            updatedBudgetAmount.IsValid = false;
+            _budgetAmountRepository.Update(updatedBudgetAmount);
+
+            // log
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+            var log = new EntityLog
+            {
+                EntityId = updatedBudgetAmount.BudgetAmountId,
+                EntityType = MyEntityType.BudgetAmount,
+                ActionType = ActionType.Update,
+                ChangedBy = userId,
+                ChangeTime = DateTime.Now,
+                Values = originalBudgetAmountLog
+            };
+
+            _EntityLogRepository.Add(log);
+
             return Ok("ok");
         }
         catch (Exception ex)
@@ -525,20 +674,48 @@ public class BudgetAmountController(
         try
         {   if(request != null && request.Type != AmountType.Ordinary)
             {
-                var BudgetAmount1 = _budgetAmountRepository.GetById(request.BudgetAmountId);
-                var BudgetAmount2 = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
-                if (BudgetAmount1 == null)
+                var updatedFirstBudgetAmount = _budgetAmountRepository.GetById(request.BudgetAmountId);
+                var updatedSecondBudgetAmount = _budgetAmountRepository.GetByCondition(BudgetAmount => BudgetAmount.BudgetAmountId == request.LinkedBudgetAmountId).FirstOrDefault();
+                if (updatedFirstBudgetAmount == null)
                 {
                     return NotFound("not exist");
                 }
-                if (BudgetAmount2 == null)
+                if (updatedSecondBudgetAmount == null)
                 {
                     return NotFound("not exist");
                 }
-                BudgetAmount1!.IsValid = true;
-                BudgetAmount2!.IsValid = true;
-                _budgetAmountRepository.Update(BudgetAmount1);
-                _budgetAmountRepository.Update(BudgetAmount2);
+                var originalFirstBudgetAmountLog = JsonSerializer.Serialize(updatedFirstBudgetAmount);
+                var originalSecondBudgetAmountLog = JsonSerializer.Serialize(updatedSecondBudgetAmount);
+                updatedFirstBudgetAmount!.IsValid = true;
+                updatedSecondBudgetAmount!.IsValid = true;
+                _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+                _budgetAmountRepository.Update(updatedSecondBudgetAmount);
+
+                // log
+                var logUserId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                var firstLog = new EntityLog
+                {
+                    EntityId = updatedFirstBudgetAmount.BudgetAmountId,
+                    EntityType = MyEntityType.BudgetAmount,
+                    ActionType = ActionType.Update,
+                    ChangedBy = logUserId,
+                    ChangeTime = DateTime.Now,
+                    Values = originalFirstBudgetAmountLog
+                };
+
+                var secondLog = new EntityLog
+                {
+                    EntityId = updatedSecondBudgetAmount.BudgetAmountId,
+                    EntityType = MyEntityType.BudgetAmount,
+                    ActionType = ActionType.Update,
+                    ChangedBy = logUserId,
+                    ChangeTime = DateTime.Now,
+                    Values = originalSecondBudgetAmountLog
+                };
+
+                _EntityLogRepository.Add(firstLog);
+                _EntityLogRepository.Add(secondLog);
+
                 return Ok("success");
             }
 
@@ -548,17 +725,32 @@ public class BudgetAmountController(
             }
 
             //var entity =  _context.BudgetAmount.Find(request.ID1); // 因為find方法是透過主鍵去搜尋,ID1不是主鍵,找不到資料
-            var entity = _budgetAmountRepository.GetById(request.BudgetAmountId);
+            var updatedBudgetAmount = _budgetAmountRepository.GetById(request.BudgetAmountId);
             //var entity = _budgetAmountRepository.GetByCondition(e => e.BudgetAmountId == request.BudgetAmountId).FirstOrDefault();
 
-            if (entity == null)
+            if (updatedBudgetAmount == null)
             {
                 return NotFound("Record not found.");
             }
 
-            //entity.Status = "O";
-            entity.IsValid = true;
-            _budgetAmountRepository.Update(entity);
+            var originalBudgetAmountLog = JsonSerializer.Serialize(updatedBudgetAmount);
+
+            updatedBudgetAmount.IsValid = true;
+            _budgetAmountRepository.Update(updatedBudgetAmount);
+
+            // log
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+            var log = new EntityLog
+            {
+                EntityId = updatedBudgetAmount.BudgetAmountId,
+                EntityType = MyEntityType.BudgetAmount,
+                ActionType = ActionType.Update,
+                ChangedBy = userId,
+                ChangeTime = DateTime.Now,
+                Values = originalBudgetAmountLog // 儲存更新前的資料
+            };
+
+            _EntityLogRepository.Add(log);
 
             return Ok("IsValid updated to 'O'.");
         }

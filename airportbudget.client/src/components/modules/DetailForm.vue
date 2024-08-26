@@ -89,8 +89,16 @@
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <!--<v-btn color="blue darken-1" text="true" @click="canceledit">取消</v-btn>-->
-                    <v-btn color="primary" text="true" @click="canceledit" variant="outlined" size="large">取消</v-btn>
-                    <v-btn color="primary" text="true" @click="submitform" variant="elevated" size="large">{{ saveBtn }}</v-btn>
+                    <v-btn color="primary" text="取消" :loading="loading" @click="canceledit" variant="outlined" size="large">
+                        <template v-slot:loader>
+                            <v-progress-circular indeterminate></v-progress-circular>
+                        </template>
+                    </v-btn>
+                    <v-btn color="primary" :text="saveBtn" :loading="loading" @click="submitform" variant="elevated" size="large">
+                        <template v-slot:loader>
+                            <v-progress-circular indeterminate></v-progress-circular>
+                        </template>
+                    </v-btn>
                 </v-card-actions>
             </v-card>
         <!--</v-dialog>-->
@@ -130,14 +138,15 @@
     //    isEdit: boolean;
     //    searchGroup: string;
     //}>();
+    const loading = ref<boolean>(false);
     const editFormRef = ref<HTMLFormElement | null>(null);
     const saveBtn = props.isEdit ? '儲存' : '新增';
     const type = props.isEdit ? true : false;
     const typeColor = props.isEdit ? 'grey-lighten-1' : '';
     const typeValues = ref<SelectedOption[]>([
         { text: '一般', value: 1 },
-        { text: '勻出', value: 2 },
-        { text: '勻入', value: 3 },
+        //{ text: '勻出', value: 2 },
+        //{ text: '勻入', value: 3 },
     ]);
     const emit = defineEmits(['update', 'cancel', 'create']);
     const cardTitle = props.isEdit ? '編輯預算資料' : '新增預算資料';
@@ -222,7 +231,6 @@
         const { valid } = await editFormRef.value?.validate();
         if (!valid) return;
 
-        // DB的Year1欄位存字串
         const data: SelectedDetail = {
             ...editedItem.value,
             //PaymentAmount: editedItem.value.PaymentAmount ? Number(editedItem.value.PaymentAmount) : 0,
@@ -231,12 +239,11 @@
 
         let url = '/api/BudgetAmount';
         try {
-            //console.log('123', data);
+            loading.value = true;
             let response: ApiResponse<any>;
             if (data.BudgetAmountId) {
-                //console.log('345', data);
                 if (!data.PaymentDate) data.PaymentDate = undefined;
-                if (data.Type !== 1) url = '/api/BudgetAmount/ByUpdateAllocate';
+                //if (data.Type !== 1) url = '/api/BudgetAmount/ByUpdateAllocate';
                 response = await put<any>(url, data);
                 //console.log(response?.Data || response?.Message);
                 // 更新成功後的處理
@@ -245,7 +252,7 @@
                 // 在這裡將CreatedYear欄位賦值為AmountYear的值
                 //data.CreatedYear = editedItem.value.AmountYear ? parseInt(editedItem.value.AmountYear, 10) : 0;
                 //data.CreatedYear = editedItem.value.AmountYear ? editedItem.value.AmountYear : 0;
-                console.log('adding data:',data);
+                //console.log('adding data:',data);
                 response = await post<any>(url, data);
                 //console.log('response.Data:', response?.Data);
                 //console.log(response?.Data || response?.Message);
@@ -256,6 +263,7 @@
         } catch (error: any) {
             console.error(error);
         } finally {
+            loading.value = false;
             canceledit();
         }
     };
