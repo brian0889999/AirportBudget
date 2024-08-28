@@ -457,7 +457,7 @@ namespace AirportBudget.Server.Biz
         private List<ExportBudgetAmountDTO> GetBudgetAmountData(int budgetId, int year, int startMonth, int endMonth)
         {
             Expression<Func<BudgetAmount, bool>> condition = item => true;
-            condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
+            //condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
             condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true && BudgetAmount.CreatedYear == year);
 
             // 新增 RequestDate 的月份範圍條件，並檢查是否為 null

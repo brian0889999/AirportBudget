@@ -36,8 +36,8 @@ namespace AirportBudget.Server.Models
         [StringLength(255)]
         public string Remarks { get; set; } = string.Empty;
 
-        [StringLength(50)]
-        public string Status { get; set; } = string.Empty;
+        //[StringLength(50)]
+        //public string Status { get; set; } = string.Empty;
 
         public int CreatedYear { get; set; }
 

@@ -10,8 +10,8 @@ namespace AirportBudget.Server.Mappings
     {
         public ViewModelMapping()
         {
-            CreateMap<BudgetAmount, BudgetAmountViewModel>()
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.Trim()));
+            CreateMap<BudgetAmount, BudgetAmountViewModel>();
+            //.ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.Trim()));
 
             CreateMap<Budget, BudgetViewModel>();
             CreateMap<User, User>();

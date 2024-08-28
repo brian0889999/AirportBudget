@@ -64,7 +64,7 @@ public class BudgetAmountController(
         condition = BudgetAmount => BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId;
         condition = condition.And(BudgetAmount => BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
         condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year);
-        condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
+        //condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
         condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
         try
         {
@@ -97,8 +97,8 @@ public class BudgetAmountController(
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.BudgetName == BudgetName);
             //condition = condition.And(BudgetAmount => BudgetAmount.Budget!.GroupId == GroupId && BudgetAmount.Budget != null && BudgetAmount.Budget.GroupId == GroupId);
             //condition = condition.And(BudgetAmount => BudgetAmount.CreatedYear == Year && BudgetAmount.Budget != null && BudgetAmount.Budget.CreatedYear == Year && BudgetAmount.Status == "O");
-            condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.Status == "O");
-            condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
+            //condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.Status == "O");
+            condition = condition.And(BudgetAmount => BudgetAmount.BudgetId == BudgetId && BudgetAmount.IsValid == true);
 
 
             if (!string.IsNullOrEmpty(Description))
@@ -120,12 +120,12 @@ public class BudgetAmountController(
            .Include(BudgetAmount => BudgetAmount.Budget)
            .AsEnumerable() // 轉為本地處理，避免 EF Core 的限制
            .OrderByDescending(BudgetAmount => BudgetAmount.RequestDate)
-           .Select(BudgetAmount =>
-           {
-               // 移除需要的欄位中的多餘空格
-               BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
-               return BudgetAmount;
-           })
+           //.Select(BudgetAmount =>
+           //{
+           //    // 移除需要的欄位中的多餘空格
+           //    BudgetAmount.Status = BudgetAmount.Status?.Trim() ?? "";
+           //    return BudgetAmount;
+           //})
            .ToList();
             return Ok(results);
         }
@@ -537,8 +537,20 @@ public class BudgetAmountController(
                 }
                 if (updatedSecondBudgetAmount == null)
                 {
+                    var originalForOnlyOneLog = JsonSerializer.Serialize(updatedFirstBudgetAmount);
                     updatedFirstBudgetAmount!.IsValid = false;
                     _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+                    var forLogUserId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                    var onlyOneLog = new EntityLog
+                    {
+                        EntityId = updatedFirstBudgetAmount.BudgetAmountId,
+                        EntityType = MyEntityType.BudgetAmount,
+                        ActionType = ActionType.Update,
+                        ChangedBy = forLogUserId,
+                        ChangeTime = DateTime.Now,
+                        Values = originalForOnlyOneLog // 儲存更新前的值
+                    };
+                    _EntityLogRepository.Add(onlyOneLog);
                     return Ok("LinkedBudgetAmountId is not exist");
                 }
 
@@ -648,11 +660,11 @@ public class BudgetAmountController(
 
             // 將 Status 欄位的多餘空格移除
             var cleanedRecords = deletedRecords
-                .Select(record =>
-                {
-                    record.Status = record.Status.Trim();
-                    return record;
-                })
+                //.Select(record =>
+                //{
+                //    record.Status = record.Status.Trim();
+                //    return record;
+                //})
                 .ToList();
             //var cleanedRecords = _mapper.Map<List<DeletedRecordsViewModel>>(deletedRecords);
 
@@ -680,9 +692,23 @@ public class BudgetAmountController(
                 {
                     return NotFound("not exist");
                 }
-                if (updatedSecondBudgetAmount == null)
+                if (updatedFirstBudgetAmount != null &&　updatedSecondBudgetAmount == null)
                 {
-                    return NotFound("not exist");
+                    var originalForOnlyOneLog = JsonSerializer.Serialize(updatedFirstBudgetAmount);
+                    updatedFirstBudgetAmount.IsValid = true;
+                    _budgetAmountRepository.Update(updatedFirstBudgetAmount);
+                    var forLogUserId = _httpContextAccessor.HttpContext?.User?.FindFirst("UserID")?.Value ?? "Unknown";
+                    var onlyOneLog = new EntityLog
+                    {
+                        EntityId = updatedFirstBudgetAmount.BudgetAmountId,
+                        EntityType = MyEntityType.BudgetAmount,
+                        ActionType = ActionType.Update,
+                        ChangedBy = forLogUserId,
+                        ChangeTime = DateTime.Now,
+                        Values = originalForOnlyOneLog // 儲存更新前的值
+                    };
+                    _EntityLogRepository.Add(onlyOneLog);
+                    return Ok("the second data does not exist");
                 }
                 var originalFirstBudgetAmountLog = JsonSerializer.Serialize(updatedFirstBudgetAmount);
                 var originalSecondBudgetAmountLog = JsonSerializer.Serialize(updatedSecondBudgetAmount);
@@ -860,7 +886,7 @@ public class BudgetAmountController(
     public IActionResult BudgetAmountForExcel(int BudgetId)
     {
         Expression<Func<BudgetAmount, bool>> condition = item => true;
-        condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
+        //condition = condition.And(BudgetAmount => BudgetAmount.Status != null && (BudgetAmount.Status.Trim() == "O" || BudgetAmount.Status.Trim() == "C"));
         condition = condition.And(BudgetAmount => BudgetAmount.IsValid == true);
         try
         {
