@@ -33,12 +33,11 @@ const routes: Array<RouteRecordRaw> = [
                 name: 'PublicWorksGroup',
                 component: () => import(/*webpackChunkName "PublicWorksGroup" */ '@/views/main/PublicWorksGroup.vue'),
                 meta: { title: '組室' },
-            }, 
-            {
-                path: 'PrivilegeManagement',
-                name: 'PrivilegeManagement',
-                component: () => import(/*webpackChunkName "PrivilegeManagement" */ '@/views/main/PrivilegeManagement.vue'),
-                meta: { title: '權限管理' },
+            }, {
+                path: 'UserManagement',
+                name: 'UserManagement',
+                component: () => import(/*webpackChunkName "UserManagement" */ '@/views/main/UserManagement.vue'),
+                meta: { title: '使用者管理' },
             }, {
                 path: 'DeletedRecords',
                 name: 'DeletedRecords',
@@ -47,9 +46,15 @@ const routes: Array<RouteRecordRaw> = [
             }, {
                 path: 'BudgetExecutionReports',
                 name: 'BudgetExecutionReports',
-                component: () => import(/*webpackChunkName "DeletedRecords" */ '@/views/main/BudgetExecutionReports.vue'),
+                component: () => import(/*webpackChunkName "BudgetExecutionReports" */ '@/views/main/BudgetExecutionReports.vue'),
                 meta: { title: 'Excel執行情形表' },
             },
+            //{
+            //    path: 'PrivilegeManagement',
+            //    name: 'PrivilegeManagement',
+            //    component: () => import(/*webpackChunkName "PrivilegeManagement" */ '@/views/main/PrivilegeManagement.vue'),
+            //    meta: { title: '權限管理' },
+            //}, 
             //{
             //    path: 'BalanceManagement',
             //    name: 'BalanceManagement',

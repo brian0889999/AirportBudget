@@ -112,6 +112,7 @@
     import type { SelectedOption } from '@/types/vueInterface';
     import { TypeMapping } from '@/utils/mappings';
     import { RULES } from '@/constants/constants';
+    import { Message } from '@/store/message';
     const props = defineProps({
         item: {
             type: Object as PropType<BudgetAmountViewModel>,
@@ -214,7 +215,7 @@
     };
     //console.log('limitBudget', props.limitBudget);
     const formattedRequestDate = computed<string>({
-      get: () => (editedItem.value.RequestDate ? editedItem.value.RequestDate.split('T')[0] : ''),
+    get: () => (editedItem.value.RequestDate ? editedItem.value.RequestDate.split('T')[0] : ''),
     set: (value: string) => {
         editedItem.value.RequestDate = value ? value + "T00:00:00" : '';
     }
@@ -248,6 +249,11 @@
                 //console.log(response?.Data || response?.Message);
                 // 更新成功後的處理
                 emit('update', editedItem.value);
+                if (response.StatusCode == 200 || response.StatusCode == 201) {
+                    Message.success('資料更新成功');
+                } else {
+                    Message.error(response.Data || response.Message);
+                }
             } else {
                 // 在這裡將CreatedYear欄位賦值為AmountYear的值
                 //data.CreatedYear = editedItem.value.AmountYear ? parseInt(editedItem.value.AmountYear, 10) : 0;
@@ -259,8 +265,14 @@
                 //console.log('data:', data);
                 //console.log(editedItem.value);
                 emit('create', editedItem.value);
+                if (response.StatusCode == 200 || response.StatusCode == 201) {
+                    Message.success('資料新增成功');
+                } else {
+                    Message.error(response.Data || response.Message);
+                }
             }
         } catch (error: any) {
+            Message.error(error.message);
             console.error(error);
         } finally {
             loading.value = false;

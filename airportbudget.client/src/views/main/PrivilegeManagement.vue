@@ -1,4 +1,4 @@
-<template>
+<!--<template>
     
     <v-container style="width:100%; display:flex;">
         <v-row>
@@ -16,9 +16,9 @@
                               items-per-page="12"
                               class="elevation-1"
                               style="width: 100%;"
-                              hide-default-footer>
+                              hide-default-footer>-->
                     <!--這邊items-per-page要跟itemsPerPage一樣-->
-                    <template v-slot:top>
+                    <!--<template v-slot:top>
                         <v-pagination v-model="page"
                                       :length="pageCount"
                                       @input="updatePage"
@@ -43,14 +43,14 @@
                 </v-data-table>
 
             </v-col>
-            <v-col cols="12" sm="8" md="6">
+            <v-col cols="12" sm="8" md="6">-->
                 <!--寫死的Table-->
-                <AuthTable v-if="!isEditing" />
+                <!--<AuthTable v-if="!isEditing" />
             </v-col>
-        </v-row>
+        </v-row>-->
 
         <!-- 表格內容 -->
-        <v-card v-if="isEditing" width="100%">
+        <!--<v-card v-if="isEditing" width="100%">
             <v-card-title>
                 <v-row>
                     <v-col>
@@ -311,4 +311,4 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     .custom-background input {
         pointer-events: none;*/ /* 禁止點擊 */
     /*}*/
-</style>
+</style>-->

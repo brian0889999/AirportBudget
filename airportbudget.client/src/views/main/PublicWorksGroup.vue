@@ -277,6 +277,8 @@
         <LinkBudgetForm :data="linkBudgetForm.data"
                         @cancel="cancelLinkBudgetForm" />
     </v-dialog>
+
+    <MyConfirmDialog v-model="confirmDialog.visible" :title="confirmDialog.title" :message="confirmDialog.message" @result="confirmDialog.result" />
 </template>
 
 
@@ -287,13 +289,15 @@
     import { downloadFile, postDataAndDownloadFile } from '@/services/excelAPI';
     import type { VDataTable } from 'vuetify/components';
     import type { BudgetAmountViewModel, Budget, SelectedBudgetModel, BudgetAmountExcelViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
-    import type { SelectedOption } from '@/types/vueInterface';
+    import type { SelectedOption, ConfirmDialogConfig } from '@/types/vueInterface';
     import { formatDate, sumByCondition, groupBy, formatNumber, formatBool } from '@/utils/functions';
     import { AuthMapping, TypeMapping } from '@/utils/mappings';
     import DetailForm from '@/components/modules/DetailForm.vue';
     import SearchFields from '@/components/modules/SearchFields.vue';
     import AllocatePage from '@/components/modules/AllocatePage.vue';
     import LinkBudgetForm from '@/components/modules/LinkBudgetForm.vue';
+    import MyConfirmDialog from '@/components/common/MyConfirmDialog.vue';
+    import { Message } from '@/store/message';
     
     const loading = ref<boolean>(false);
     type ReadonlyHeaders = VDataTable['$props']['headers'];
@@ -374,9 +378,7 @@
     ]);
     const searchGroup = ref<number>(0);
     const isEdit = ref(false);
-
-    const currentBudgetId = ref<number>(0); 
-    const currentBudgetName = ref<string>(''); // 儲存 budgetValue 的變數
+    const currentBudgetId = ref<number>(0); // 儲存 budgetValue 的變數
     const limitBudget = ref<number>(0); // 新增修改資料時的限制金額
     const showAllocatePage = ref<boolean>(false);
     const linkBudgetDataBtn = (item: any) => item.Type == 2 ? '勻入資料' : '勻出資料'; 
@@ -419,23 +421,7 @@
         CreatedYear: 0,
         AmountYear: 0,
         BudgetId: 0,
-        //AmountSerialNumber: 0,
         IsValid: true,
-        //Budget: {
-        //    BudgetId: 0,
-        //    BudgetName: '',
-        //    Subject6: '',
-        //    Subject7: '',
-        //    Subject8: '',
-        //    AnnualBudgetAmount: 0,
-        //    FinalBudgetAmount: 0,
-        //    CreatedYear: 0,
-        //    GroupId: 0,
-        //    Group: {
-        //        GroupId: 0,
-        //        GroupName: ''
-        //    }
-        //}
     };
 
     const defaultSelectedBudget: SelectedBudgetModel = {
@@ -466,6 +452,15 @@
     })
 
     const user = ref<UserViewModel>(defaultUser); 
+
+    const showDetailForm = ref<boolean>(false);
+    const editingItem = ref<BudgetAmountViewModel>(defaultBudgetAmount);
+
+    const confirmDialog = ref<ConfirmDialogConfig>({
+        visible: false,
+        title: '',
+        message: '',
+    });
 
     const getCurrentUser = async () => {
     const url = '/api/User/Current';
@@ -701,8 +696,7 @@
     };
 
 
-    const showDetailForm = ref<boolean>(false);
-    const editingItem = ref<BudgetAmountViewModel>(defaultBudgetAmount);
+
 
     const editItem = async (item: SelectedDetail) => {
         showDetailForm.value = true;
@@ -760,15 +754,17 @@
         editingItem.value = defaultBudgetAmount;
     };
 
+
     const deleteItem = async (data: BudgetAmountViewModel) => {
         // 刪除項目的處理邏輯
-        const isConfirmed = confirm('你確定要刪除此項目嗎？');
-        if (isConfirmed) {
+        //const isConfirmed = confirm('你確定要刪除此項目嗎？');
+        //if (isConfirmed) {
+        confirmDialog.value.result = async () => {
             /*console.log('Delete item:', item);*/
             try {
                 const url = '/api/BudgetAmount/SoftDelete';
                 const response: ApiResponse<any> = await put<any>(url, data);
-                if (response.StatusCode == 200) {
+                if (response.StatusCode == 200 || response.StatusCode == 201) {
                     //console.log(response.Message);
                     await fetchBudgetData();
                     await fetchSelectedDetail(currentBudgetId.value);
@@ -777,15 +773,23 @@
                     if (budgetItem) {
                         await handleBudgetClick(budgetItem);
                     }
+                    Message.success('資料刪除成功');
+                } else {
+                    Message.error(response.Data || response.Message);
                 }
             }
-            catch (error) {
+            catch (error: any) {
+                Message.error(error.message);
                 console.error(error);
             }
-        } else {
-            // 如果使用者取消，則不進行任何操作
-            console.log('取消刪除');
-        }
+        };
+        confirmDialog.value.visible = true;
+        confirmDialog.value.title = '提示';
+        confirmDialog.value.message = '是否要刪除?';
+        //} else {
+        //    // 如果使用者取消，則不進行任何操作
+        //    console.log('取消刪除');
+        //}
     };
 
 

@@ -21,3 +21,10 @@ export interface SelectedOption {
     text: string;
     value: any;
 }
+
+export interface ConfirmDialogConfig {
+    visible: boolean,
+    title: string,
+    message: string,
+    result?: () => void
+}

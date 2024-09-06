@@ -159,6 +159,7 @@ import type { SelectedOption } from '@/types/vueInterface';
 import { get, put, post, type ApiResponse } from '@/services/api';
 import type { VDataTable } from 'vuetify/components';
 import { RULES } from '@/constants/constants';
+import { Message } from '@/store/message';
 type ReadonlyHeaders = VDataTable['$props']['headers'];
 
     const props = defineProps({
@@ -519,7 +520,7 @@ const toUTC = (date: Date) => {
         }
         try {
             const response: ApiResponse<any> = await get<any>(idUrl, getIdDataViewModel);
-            if (response.StatusCode == 200) {
+            if (response.StatusCode == 200 || response.StatusCode == 201) {
                 dataIn.BudgetId = response.Data.BudgetId;
             }
         } catch (error) {
@@ -534,13 +535,15 @@ const toUTC = (date: Date) => {
 
         try {
             const response: ApiResponse<any> = await post<any>(url, data);
-            if (response.StatusCode == 200) {
+            if (response.StatusCode == 200 || response.StatusCode == 201) {
+                Message.success('資料新增成功');
                 console.log(response.Data || response.Message);
             }
             else {
-                alert('資料新增失敗');
+                Message.error('資料新增失敗');
             }
-        } catch (error) {
+        } catch (error: any) {
+            Message.error(error.message);
             console.error(error);
         } finally {
             emit('cancel');

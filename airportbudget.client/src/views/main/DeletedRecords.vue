@@ -87,6 +87,8 @@
         </v-data-table>
 
     </v-container>
+
+    <MyConfirmDialog v-model="confirmDialog.visible" :title="confirmDialog.title" :message="confirmDialog.message" @result="confirmDialog.result" />
 </template>
 
 
@@ -94,11 +96,13 @@
 import axios from 'axios';
 import { ref, computed, onMounted, watch } from 'vue';
 import type { BudgetAmountViewModel, SelectedDetail, UserViewModel } from '@/types/apiInterface';
+import type { ConfirmDialogConfig } from '@/types/vueInterface';
 //import { AuthMapping, ReverseAuthMapping, StatusMapping, ReverseStatusMapping } from '@/utils/mappings'; // 對應狀態碼到中文
 import { get, put, type ApiResponse } from '@/services/api';
 import type { VDataTable } from 'vuetify/components';
 import { formatDate, formatNumber } from '@/utils/functions';
 import { TypeMapping } from '@/utils/mappings';
+import MyConfirmDialog from '@/components/common/MyConfirmDialog.vue';
 type ReadonlyHeaders = VDataTable['$props']['headers'];
   
     const loading = ref(false);
@@ -149,6 +153,12 @@ type ReadonlyHeaders = VDataTable['$props']['headers'];
     };
     //const user = ref<UserViewModel>(defaultUser);
     const people = ref<string[]>([]);
+    const confirmDialog = ref<ConfirmDialogConfig>({
+        visible: false,
+        title: '',
+        message: '',
+    });
+
     const getUser = async () => {
         const url = '/api/User';
         try {
@@ -193,10 +203,11 @@ const searchDeletedRecords = async () => {
     }
     };
     const restoreData = async (data: BudgetAmountViewModel) => {
-        const isConfirmed = confirm('你確定要還原嗎？');
-        const url = 'api/BudgetAmount/ByRestoreData'
-        if (isConfirmed) {
+        //const isConfirmed = confirm('你確定要還原嗎？');
+        //if (isConfirmed) {
+        confirmDialog.value.result = async () => {
             try {
+                const url = 'api/BudgetAmount/ByRestoreData'
                 //console.log('data', data);
                 const response: ApiResponse<any> = await put<BudgetAmountViewModel>(url, data);
                 if (response.StatusCode == 200) { // 如果成功再叫一次資料
@@ -208,6 +219,10 @@ const searchDeletedRecords = async () => {
                 console.error(error);
             }
         }
+        confirmDialog.value.visible = true;
+        confirmDialog.value.title = '提示';
+        confirmDialog.value.message = '是否要還原?';
+        //}
     };
 
 const page = ref<number>(1);
